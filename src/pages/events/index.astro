@@ -94,6 +94,7 @@ const hasFilters = cityFilter || traditionFilter || typeFilter || categoryFilter
         autocomplete="off"
       >
       <button type="submit">Search</button>
+      <a href="/search" class="advanced-link">Advanced search</a>
     </form>
 
     <div class="filter-row">
@@ -308,6 +309,16 @@ const hasFilters = cityFilter || traditionFilter || typeFilter || categoryFilter
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
+  }
+
+  .advanced-link {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    align-self: center;
+  }
+
+  .advanced-link:hover {
+    color: var(--accent);
   }
 
   .filter-row {
