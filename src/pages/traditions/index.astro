@@ -152,18 +152,18 @@ const importedTraditions = traditions.filter(t => t.category === TraditionCatego
   }
 
   .section-badge.rooted {
-    background: rgba(34, 197, 94, 0.15);
-    color: var(--accent);
+    background: var(--category-rooted-bg);
+    color: var(--category-rooted);
   }
 
   .section-badge.hybrid {
-    background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
+    background: var(--category-hybrid-bg);
+    color: var(--category-hybrid);
   }
 
   .section-badge.imported {
-    background: var(--bg);
-    color: var(--text-muted);
+    background: var(--category-imported-bg);
+    color: var(--category-imported);
   }
 
   .section-desc {
@@ -193,11 +193,11 @@ const importedTraditions = traditions.filter(t => t.category === TraditionCatego
   }
 
   .tradition-card[data-sacred="true"] {
-    border-left: 3px solid #7c3aed;
+    border-left: 3px solid var(--sacred);
   }
 
   .tradition-card.hybrid {
-    border-left: 3px solid #60a5fa;
+    border-left: 3px solid var(--category-hybrid);
   }
 
   .tradition-card.imported {
@@ -218,8 +218,8 @@ const importedTraditions = traditions.filter(t => t.category === TraditionCatego
 
   .sacred-badge {
     font-size: 0.65rem;
-    background: #7c3aed;
-    color: #fff;
+    background: var(--sacred);
+    color: var(--accent-contrast);
     padding: 0.15rem 0.5rem;
     border-radius: 4px;
   }
@@ -231,7 +231,7 @@ const importedTraditions = traditions.filter(t => t.category === TraditionCatego
   }
 
   .tradition-card.hybrid .tradition-count {
-    color: #60a5fa;
+    color: var(--category-hybrid);
   }
 
   .tradition-card.imported .tradition-count {
