@@ -85,17 +85,19 @@ const hasFilters = cityFilter || traditionFilter || typeFilter || categoryFilter
   </div>
 
   <div class="filters">
-    <form method="GET" action="/events" class="search-inline">
-      <input
-        type="search"
-        name="q"
-        placeholder="Search events, artists, places..."
-        value={query || ''}
-        autocomplete="off"
-      >
-      <button type="submit">Search</button>
+    <div class="search-wrapper">
+      <form method="GET" action="/events" class="search-inline">
+        <input
+          type="search"
+          name="q"
+          placeholder="Search events, artists, places..."
+          value={query || ''}
+          autocomplete="off"
+        >
+        <button type="submit">Search</button>
+      </form>
       <a href="/search" class="advanced-link">Advanced search</a>
-    </form>
+    </div>
 
     <div class="filter-row">
       <select name="type" id="type-filter">
@@ -279,10 +281,13 @@ const hasFilters = cityFilter || traditionFilter || typeFilter || categoryFilter
     margin-bottom: 2rem;
   }
 
+  .search-wrapper {
+    margin-bottom: 1rem;
+  }
+
   .search-inline {
     display: flex;
     gap: 0.5rem;
-    margin-bottom: 1rem;
   }
 
   .search-inline input {
@@ -312,9 +317,10 @@ const hasFilters = cityFilter || traditionFilter || typeFilter || categoryFilter
   }
 
   .advanced-link {
+    display: inline-block;
+    margin-top: 0.5rem;
     font-size: 0.8rem;
     color: var(--text-muted);
-    align-self: center;
   }
 
   .advanced-link:hover {
