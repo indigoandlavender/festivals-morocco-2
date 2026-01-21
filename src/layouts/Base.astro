@@ -124,26 +124,76 @@ const currentPath = Astro.url.pathname;
       padding: 2rem 0 4rem;
     }
 
-    /* Footer */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 2rem 0;
-      color: var(--text-muted);
-      font-size: 0.875rem;
+    /* Footer - 3-level ombre */
+    .footer-level-1 {
+      background: #4A6259;
+      padding: 2.5rem 0;
     }
 
-    footer .container {
+    .footer-level-1 .container {
       display: flex;
-      justify-content: space-between;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.5rem 3rem;
+    }
+
+    .footer-level-1 a {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+
+    .footer-level-1 a:hover {
+      color: #fff;
+    }
+
+    .footer-level-2 {
+      background: #3D524A;
+      padding: 1.25rem 0;
+    }
+
+    .footer-level-2 .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem 2rem;
+    }
+
+    .footer-level-2 a {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+
+    .footer-level-2 a:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .footer-level-3 {
+      background: #2F403A;
+      padding: 1rem 0;
+    }
+
+    .footer-level-3 .container {
+      display: flex;
+      justify-content: center;
       align-items: center;
     }
 
-    footer a {
-      color: var(--text-muted);
+    .footer-level-3 span,
+    .footer-level-3 a {
+      color: rgba(255, 255, 255, 0.35);
+      font-size: 0.7rem;
     }
 
-    footer a:hover {
-      color: var(--text);
+    .footer-level-3 a {
+      transition: color 0.2s;
+    }
+
+    .footer-level-3 a:hover {
+      color: rgba(255, 255, 255, 0.6);
     }
   </style>
 </head>
@@ -152,7 +202,6 @@ const currentPath = Astro.url.pathname;
     <div class="container">
       <a href="/" class="logo">Festivals in Morocco</a>
       <nav>
-        <a href="/" class:list={[{ active: currentPath === '/' }]}>Home</a>
         <a href="/events" class:list={[{ active: currentPath.startsWith('/events') }]}>Events</a>
         <a href="/traditions" class:list={[{ active: currentPath.startsWith('/traditions') }]}>Traditions</a>
         <a href="/cities" class:list={[{ active: currentPath.startsWith('/cities') }]}>Cities</a>
@@ -168,9 +217,25 @@ const currentPath = Astro.url.pathname;
   </main>
 
   <footer>
-    <div class="container">
-      <span>Music events and festivals in Morocco</span>
-      <a href="/api/events" target="_blank">API</a>
+    <div class="footer-level-1">
+      <div class="container">
+        <a href="/events">Events</a>
+        <a href="/traditions">Traditions</a>
+        <a href="/cities">Cities</a>
+        <a href="/map">Map</a>
+      </div>
+    </div>
+    <div class="footer-level-2">
+      <div class="container">
+        <a href="/terms">Terms</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/disclaimer">Disclaimer</a>
+      </div>
+    </div>
+    <div class="footer-level-3">
+      <div class="container">
+        <span>Powered by <a href="https://slowmorocco.com" target="_blank" rel="noopener">Slow Morocco</a></span>
+      </div>
     </div>
   </footer>
 </body>
