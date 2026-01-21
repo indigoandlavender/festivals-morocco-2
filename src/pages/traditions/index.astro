@@ -1,0 +1,250 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getTraditions, getEventsByTradition, TraditionCategory, TraditionCategoryLabels } from '../../lib/api';
+
+const traditions = getTraditions();
+
+const rootedTraditions = traditions.filter(t => t.category === TraditionCategory.ROOTED);
+const hybridTraditions = traditions.filter(t => t.category === TraditionCategory.HYBRID);
+const importedTraditions = traditions.filter(t => t.category === TraditionCategory.IMPORTED);
+---
+
+<Base title="Music Traditions - Festivals in Morocco">
+  <div class="page-header">
+    <h1>Music Traditions</h1>
+    <p class="subtitle">Musical traditions featured in Morocco's events</p>
+  </div>
+
+  <div class="intro">
+    <p>
+      Morocco's musical landscape includes ancestral traditions indigenous to the region,
+      contemporary Moroccan forms that blend influences, and international genres
+      present through festivals and concerts.
+    </p>
+  </div>
+
+  {rootedTraditions.length > 0 && (
+    <section class="tradition-section">
+      <div class="section-header">
+        <h2>Rooted Traditions</h2>
+        <span class="section-badge rooted">{rootedTraditions.length} traditions</span>
+      </div>
+      <p class="section-desc">
+        Ancestral, pre-colonial, indigenous music forms. These traditions carry multi-generational
+        continuity and represent Morocco's musical heritage.
+      </p>
+
+      <div class="traditions-grid">
+        {rootedTraditions.map(tradition => {
+          const events = getEventsByTradition(tradition.id);
+
+          return (
+            <a href={`/traditions/${tradition.id}`} class="tradition-card" data-sacred={tradition.sacred}>
+              <div class="tradition-header">
+                <h3>{tradition.name}</h3>
+                {tradition.sacred && <span class="sacred-badge">Sacred</span>}
+              </div>
+              <p class="tradition-count">{tradition.count} event{tradition.count !== 1 ? 's' : ''}</p>
+            </a>
+          );
+        })}
+      </div>
+    </section>
+  )}
+
+  {hybridTraditions.length > 0 && (
+    <section class="tradition-section">
+      <div class="section-header">
+        <h2>Hybrid / Contemporary</h2>
+        <span class="section-badge hybrid">{hybridTraditions.length} traditions</span>
+      </div>
+      <p class="section-desc">
+        Moroccan synthesis forms, post-independence developments. These blend traditional
+        elements with modern influences while remaining distinctly Moroccan.
+      </p>
+
+      <div class="traditions-grid">
+        {hybridTraditions.map(tradition => (
+          <a href={`/traditions/${tradition.id}`} class="tradition-card hybrid">
+            <div class="tradition-header">
+              <h3>{tradition.name}</h3>
+            </div>
+            <p class="tradition-count">{tradition.count} event{tradition.count !== 1 ? 's' : ''}</p>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  {importedTraditions.length > 0 && (
+    <section class="tradition-section">
+      <div class="section-header">
+        <h2>International</h2>
+        <span class="section-badge imported">{importedTraditions.length} traditions</span>
+      </div>
+      <p class="section-desc">
+        International musical forms present in Morocco through festivals and concerts.
+        These are not indigenous but have significant presence in the event landscape.
+      </p>
+
+      <div class="traditions-grid">
+        {importedTraditions.map(tradition => (
+          <a href={`/traditions/${tradition.id}`} class="tradition-card imported">
+            <div class="tradition-header">
+              <h3>{tradition.name}</h3>
+            </div>
+            <p class="tradition-count">{tradition.count} event{tradition.count !== 1 ? 's' : ''}</p>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+</Base>
+
+<style>
+  .page-header {
+    margin-bottom: 1rem;
+  }
+
+  .page-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+  }
+
+  .intro {
+    margin-bottom: 3rem;
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  .intro p {
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  .tradition-section {
+    margin-bottom: 3rem;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .section-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .section-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 100px;
+  }
+
+  .section-badge.rooted {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--accent);
+  }
+
+  .section-badge.hybrid {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+
+  .section-badge.imported {
+    background: var(--bg);
+    color: var(--text-muted);
+  }
+
+  .section-desc {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    max-width: 700px;
+  }
+
+  .traditions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .tradition-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .tradition-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .tradition-card[data-sacred="true"] {
+    border-left: 3px solid #7c3aed;
+  }
+
+  .tradition-card.hybrid {
+    border-left: 3px solid #60a5fa;
+  }
+
+  .tradition-card.imported {
+    opacity: 0.85;
+  }
+
+  .tradition-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .tradition-card h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .sacred-badge {
+    font-size: 0.65rem;
+    background: #7c3aed;
+    color: #fff;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .tradition-count {
+    color: var(--accent);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .tradition-card.hybrid .tradition-count {
+    color: #60a5fa;
+  }
+
+  .tradition-card.imported .tradition-count {
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 640px) {
+    .page-header h1 {
+      font-size: 2rem;
+    }
+
+    .traditions-grid {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+  }
+</style>

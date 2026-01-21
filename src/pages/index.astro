@@ -1,46 +1,74 @@
 ---
 import Base from '../layouts/Base.astro';
-import { getUpcomingEvents, getFeaturedEvents, getCities, getGenres, formatDateRange } from '../lib/api';
+import {
+  getUpcomingEvents,
+  getFeaturedEvents,
+  getCities,
+  getTraditions,
+  formatDateRange,
+  formatLocation,
+  EventTypeLabels,
+  TraditionCategory,
+  MUSIC_TRADITIONS
+} from '../lib/api';
 
 const featured = getFeaturedEvents().slice(0, 3);
 const upcoming = getUpcomingEvents().slice(0, 6);
 const cities = getCities().slice(0, 8);
-const genres = getGenres().slice(0, 10);
+const traditions = getTraditions();
+
+const rootedTraditions = traditions.filter(t => t.category === TraditionCategory.ROOTED).slice(0, 6);
+const hybridTraditions = traditions.filter(t => t.category === TraditionCategory.HYBRID).slice(0, 4);
 ---
 
 <Base title="Festivals in Morocco - Music Events & Concerts">
   <section class="hero">
-    <h1>Festivals in Morocco</h1>
-    <p class="subtitle">Discover music events, concerts, and cultural festivals across Morocco</p>
+    <h1>Music in Morocco</h1>
+    <p class="subtitle">Discover festivals, concerts, and musical traditions across Morocco</p>
 
     <form class="search-form" action="/events" method="GET">
-      <input type="search" name="q" placeholder="Search events, artists, cities..." autocomplete="off">
+      <input type="search" name="q" placeholder="Search events, traditions, cities..." autocomplete="off">
       <button type="submit">Search</button>
     </form>
   </section>
 
   <section class="featured">
     <div class="section-header">
-      <h2>Featured Festivals</h2>
+      <h2>Featured Events</h2>
       <a href="/events" class="view-all">View all</a>
     </div>
 
     <div class="featured-grid">
-      {featured.map(event => (
-        <a href={`/events/${event.slug}`} class="featured-card">
-          <div class="featured-content">
-            <span class="date">{formatDateRange(event.start_date, event.end_date)}</span>
-            <h3>{event.name}</h3>
-            <p class="location">{event.city}, {event.region}</p>
-            <div class="genres">
-              {event.genres.slice(0, 3).map(genre => (
-                <span class="genre-tag">{genre}</span>
-              ))}
+      {featured.map(event => {
+        const eventTraditions = event.traditions
+          .map(tid => MUSIC_TRADITIONS[tid])
+          .filter(Boolean);
+        const hasSacred = eventTraditions.some(t => t.sacred);
+
+        return (
+          <a href={`/events/${event.slug}`} class="featured-card" data-weight={event.cultural_weight}>
+            <div class="featured-content">
+              <span class="date">{formatDateRange(event.timing)}</span>
+              <h3>
+                {event.name}
+                {event.name_ar && <span class="name-local">{event.name_ar}</span>}
+              </h3>
+              <p class="location">{formatLocation(event.location)}</p>
+              <div class="traditions">
+                {eventTraditions.slice(0, 3).map(tradition => (
+                  <span class="tradition-tag" data-category={tradition.category}>
+                    {tradition.name}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-          {event.is_verified && <span class="verified-badge" title="Verified">✓</span>}
-        </a>
-      ))}
+            <div class="card-badges">
+              {event.is_verified && <span class="verified-badge" title="Verified">✓</span>}
+              {hasSacred && <span class="sacred-badge" title="Features sacred tradition">◆</span>}
+            </div>
+          </a>
+        );
+      })}
     </div>
   </section>
 
@@ -51,48 +79,82 @@ const genres = getGenres().slice(0, 10);
     </div>
 
     <div class="events-list">
-      {upcoming.map(event => (
-        <a href={`/events/${event.slug}`} class="event-row">
-          <div class="event-date">
-            <span class="day">{new Date(event.start_date).getDate()}</span>
-            <span class="month">{new Date(event.start_date).toLocaleDateString('en-GB', { month: 'short' })}</span>
-          </div>
-          <div class="event-info">
-            <h3>{event.name}</h3>
-            <p>{event.city} · {event.genres.slice(0, 2).join(', ')}</p>
-          </div>
-          <span class="event-type">{event.event_type}</span>
-        </a>
-      ))}
+      {upcoming.map(event => {
+        const startDate = event.timing.gregorian_start ? new Date(event.timing.gregorian_start) : null;
+        const eventTraditions = event.traditions
+          .map(tid => MUSIC_TRADITIONS[tid])
+          .filter(Boolean);
+
+        return (
+          <a href={`/events/${event.slug}`} class="event-row">
+            {startDate ? (
+              <div class="event-date">
+                <span class="day">{startDate.getDate()}</span>
+                <span class="month">{startDate.toLocaleDateString('en-GB', { month: 'short' })}</span>
+              </div>
+            ) : (
+              <div class="event-date">
+                <span class="day">TBA</span>
+              </div>
+            )}
+            <div class="event-info">
+              <h3>{event.name}</h3>
+              <p>
+                {event.location.city || event.location.region}
+                {eventTraditions.length > 0 && ` · ${eventTraditions.slice(0, 2).map(t => t.name).join(', ')}`}
+              </p>
+            </div>
+            <span class="event-type">{EventTypeLabels[event.event_type]}</span>
+          </a>
+        );
+      })}
     </div>
   </section>
 
   <div class="two-col">
+    <section class="traditions-home">
+      <div class="section-header">
+        <h2>Rooted Traditions</h2>
+        <a href="/traditions" class="view-all">View all</a>
+      </div>
+      <p class="section-desc">Ancestral music forms indigenous to Morocco</p>
+
+      <div class="tag-list">
+        {rootedTraditions.map(tradition => (
+          <a href={`/traditions/${tradition.id}`} class="tag" data-sacred={tradition.sacred}>
+            {tradition.name}
+            {tradition.sacred && <span class="sacred-marker">◆</span>}
+            <span class="count">{tradition.count}</span>
+          </a>
+        ))}
+      </div>
+
+      {hybridTraditions.length > 0 && (
+        <>
+          <h3 class="subsection-title">Contemporary</h3>
+          <div class="tag-list">
+            {hybridTraditions.map(tradition => (
+              <a href={`/traditions/${tradition.id}`} class="tag hybrid">
+                {tradition.name}
+                <span class="count">{tradition.count}</span>
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
+
     <section class="cities">
       <div class="section-header">
         <h2>Cities</h2>
         <a href="/cities" class="view-all">View all</a>
       </div>
+      <p class="section-desc">Events by location</p>
 
       <div class="tag-list">
         {cities.map(city => (
           <a href={`/cities/${city.slug}`} class="tag">
             {city.name} <span class="count">{city.count}</span>
-          </a>
-        ))}
-      </div>
-    </section>
-
-    <section class="genres-section">
-      <div class="section-header">
-        <h2>Genres</h2>
-        <a href="/genres" class="view-all">View all</a>
-      </div>
-
-      <div class="tag-list">
-        {genres.map(genre => (
-          <a href={`/genres/${genre.slug}`} class="tag">
-            {genre.name} <span class="count">{genre.count}</span>
           </a>
         ))}
       </div>
@@ -163,12 +225,18 @@ const genres = getGenres().slice(0, 10);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
   }
 
   .section-header h2 {
     font-size: 1.5rem;
     font-weight: 600;
+  }
+
+  .section-desc {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
   }
 
   .view-all {
@@ -200,6 +268,11 @@ const genres = getGenres().slice(0, 10);
     transform: translateY(-2px);
   }
 
+  .featured-card[data-weight="4"],
+  .featured-card[data-weight="5"] {
+    border-left: 3px solid var(--accent);
+  }
+
   .featured-card .date {
     color: var(--accent);
     font-size: 0.875rem;
@@ -211,30 +284,55 @@ const genres = getGenres().slice(0, 10);
     margin: 0.5rem 0;
   }
 
+  .name-local {
+    display: block;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
   .featured-card .location {
     color: var(--text-muted);
     font-size: 0.9rem;
     margin-bottom: 1rem;
   }
 
-  .genres {
+  .traditions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
   }
 
-  .genre-tag {
-    background: var(--bg);
+  .tradition-tag {
     padding: 0.25rem 0.75rem;
     border-radius: 100px;
     font-size: 0.75rem;
+  }
+
+  .tradition-tag[data-category="rooted"] {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--accent);
+  }
+
+  .tradition-tag[data-category="hybrid"] {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+
+  .tradition-tag[data-category="imported"] {
+    background: var(--bg);
     color: var(--text-muted);
   }
 
-  .verified-badge {
+  .card-badges {
     position: absolute;
     top: 1rem;
     right: 1rem;
+    display: flex;
+    gap: 0.375rem;
+  }
+
+  .verified-badge {
     background: var(--accent);
     color: #000;
     width: 24px;
@@ -244,6 +342,18 @@ const genres = getGenres().slice(0, 10);
     align-items: center;
     justify-content: center;
     font-size: 0.75rem;
+  }
+
+  .sacred-badge {
+    background: #7c3aed;
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
   }
 
   .events-list {
@@ -307,13 +417,20 @@ const genres = getGenres().slice(0, 10);
     background: var(--bg);
     padding: 0.25rem 0.75rem;
     border-radius: 4px;
-    text-transform: capitalize;
   }
 
   .two-col {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 2rem;
+  }
+
+  .subsection-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
   }
 
   .tag-list {
@@ -336,6 +453,19 @@ const genres = getGenres().slice(0, 10);
 
   .tag:hover {
     border-color: var(--accent);
+  }
+
+  .tag[data-sacred="true"] {
+    border-color: #7c3aed;
+  }
+
+  .tag.hybrid {
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+
+  .sacred-marker {
+    color: #7c3aed;
+    font-size: 0.7rem;
   }
 
   .tag .count {

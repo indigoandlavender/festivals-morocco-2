@@ -126,8 +126,8 @@ const currentPath = Astro.url.pathname;
       <nav>
         <a href="/" class:list={[{ active: currentPath === '/' }]}>Home</a>
         <a href="/events" class:list={[{ active: currentPath.startsWith('/events') }]}>Events</a>
+        <a href="/traditions" class:list={[{ active: currentPath.startsWith('/traditions') }]}>Traditions</a>
         <a href="/cities" class:list={[{ active: currentPath.startsWith('/cities') }]}>Cities</a>
-        <a href="/genres" class:list={[{ active: currentPath.startsWith('/genres') }]}>Genres</a>
       </nav>
     </div>
   </header>

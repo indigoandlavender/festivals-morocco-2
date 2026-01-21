@@ -1,399 +1,607 @@
 // API helper for fetching data
-// In production, this fetches from the API
-// During build, it uses the local data
+// Uses canonical taxonomy from taxonomy.ts
 
-const API_BASE = import.meta.env.PROD
-  ? 'https://festivalsinmorocco.com'
-  : 'http://localhost:3000';
+import {
+  EventType,
+  EventTypeLabels,
+  TraditionCategory,
+  TemporalType,
+  DatePrecision,
+  LocationType,
+  EventStatus,
+  MUSIC_TRADITIONS,
+  REGIONS,
+  type MusicTradition,
+  type CulturalWeightValue,
+  type EventTiming,
+  type EventLocation,
+  type VenueType,
+  type Season
+} from './taxonomy';
+
+// Re-export taxonomy types for convenience
+export * from './taxonomy';
+
+// =============================================================================
+// EVENT INTERFACE
+// =============================================================================
 
 export interface Event {
   id: string;
   name: string;
+  name_ar?: string;
+  name_tzm?: string;
   slug: string;
-  event_type: string;
-  start_date: string;
-  end_date: string | null;
-  city: string;
-  city_slug: string;
-  region: string;
-  region_slug: string;
-  venue: string | null;
-  genres: string[];
-  artists: string[];
-  organizer: string | null;
-  official_website: string | null;
-  ticket_url: string | null;
-  status: string;
+
+  // Axis 1: Event Type (mandatory)
+  event_type: EventType;
+
+  // Axis 2: Music Traditions (at least one required)
+  traditions: string[]; // IDs from MUSIC_TRADITIONS
+
+  // Axis 3: Cultural Weight (internal)
+  cultural_weight: CulturalWeightValue;
+  weight_rationale: string;
+
+  // Axis 4: Temporal Nature
+  timing: EventTiming;
+
+  // Axis 5: Location
+  location: EventLocation;
+
+  // Status
+  status: EventStatus;
+
+  // Verification
   is_verified: boolean;
-  is_pinned: boolean;
-  cultural_significance: number;
-  description: string | null;
-  image_url: string | null;
+  is_featured: boolean;
+
+  // Content
+  description?: string;
+  description_ar?: string;
+  historical_reference?: string; // Required for MOUSSEM
+
+  // Links
+  official_website?: string;
+  ticket_url?: string;
+
+  // Artists (for concerts/festivals)
+  artists: string[];
+
+  // Organizer
+  organizer?: string;
+
+  // Media
+  image_url?: string;
+
+  // Lineage (for evolved events)
+  preceded_by?: string;
+  succeeded_by?: string;
 }
 
-// Embedded data for static generation
+// =============================================================================
+// SEED DATA - Properly classified according to taxonomy
+// =============================================================================
+
 const EVENTS: Event[] = [
+  // =========================================================================
+  // FESTIVALS - Rooted/Hybrid traditions
+  // =========================================================================
   {
-    id: "gnaoua-2025",
-    name: "Festival Gnaoua et Musiques du Monde",
-    slug: "festival-gnaoua-et-musiques-du-monde",
-    event_type: "festival",
-    start_date: "2025-06-26",
-    end_date: "2025-06-29",
-    city: "Essaouira",
-    city_slug: "essaouira",
-    region: "Marrakech-Safi",
-    region_slug: "marrakech-safi",
-    venue: "Place Moulay Hassan",
-    genres: ["Gnawa", "World Music", "Jazz"],
-    artists: ["Maalem Hamid El Kasri", "Hindi Zahra", "Oum"],
-    organizer: "Association Yerma Gnaoua",
-    official_website: "https://festival-gnaoua.net",
-    ticket_url: "https://festival-gnaoua.net/billetterie",
-    status: "confirmed",
+    id: 'gnaoua-2025',
+    name: 'Festival Gnaoua et Musiques du Monde',
+    name_ar: 'مهرجان كناوة وموسيقى العالم',
+    slug: 'festival-gnaoua-essaouira',
+    event_type: EventType.FESTIVAL,
+    traditions: ['gnawa', 'jazz', 'world', 'fusion'],
+    cultural_weight: 4,
+    weight_rationale: 'Established festival that has significantly elevated Gnawa tradition visibility internationally since 1998',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-06-26',
+      gregorian_end: '2025-06-29',
+      date_precision: DatePrecision.EXACT,
+      season: 'summer',
+      recurrence_notes: 'Late June annually'
+    },
+    location: {
+      location_type: LocationType.CITY_AREA,
+      region: 'Marrakech-Safi',
+      region_slug: 'marrakech-safi',
+      city: 'Essaouira',
+      city_slug: 'essaouira',
+      venue_name: 'Place Moulay Hassan & Multiple Stages',
+      venue_type: 'outdoor',
+      area_description: 'Essaouira medina, port, and beach areas'
+    },
+    status: EventStatus.CONFIRMED,
     is_verified: true,
-    is_pinned: true,
-    cultural_significance: 10,
-    description: "Annual celebration of Gnawa music and culture, bringing together Gnawa masters and international artists.",
-    image_url: null
+    is_featured: true,
+    description: 'The premier festival celebrating Gnawa music and its dialogue with world music traditions. Features Gnawa maalems alongside international jazz, blues, and world music artists.',
+    official_website: 'https://festival-gnaoua.net',
+    ticket_url: 'https://festival-gnaoua.net/billetterie',
+    artists: ['Maalem Hamid El Kasri', 'Hindi Zahra', 'Oum'],
+    organizer: 'Association Yerma Gnaoua'
   },
   {
-    id: "mawazine-2025",
-    name: "Mawazine Rhythms of the World",
-    slug: "mawazine-rhythms-of-the-world",
-    event_type: "festival",
-    start_date: "2025-06-20",
-    end_date: "2025-06-28",
-    city: "Rabat",
-    city_slug: "rabat",
-    region: "Rabat-Salé-Kénitra",
-    region_slug: "rabat-sale-kenitra",
-    venue: "OLM Souissi",
-    genres: ["Pop", "World Music", "Hip Hop", "R&B"],
-    artists: [],
-    organizer: "Maroc Cultures",
-    official_website: "https://mawazine.ma",
-    ticket_url: null,
-    status: "announced",
+    id: 'fes-sacred-2025',
+    name: 'Fes Festival of World Sacred Music',
+    name_ar: 'مهرجان فاس للموسيقى الروحية العالمية',
+    slug: 'fes-festival-sacred-music',
+    event_type: EventType.FESTIVAL,
+    traditions: ['sufi', 'andalusi', 'world'],
+    cultural_weight: 4,
+    weight_rationale: 'Internationally recognized festival in UNESCO World Heritage city, promoting interfaith dialogue through sacred music since 1994',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-06-06',
+      gregorian_end: '2025-06-14',
+      date_precision: DatePrecision.EXACT,
+      season: 'summer',
+      recurrence_notes: 'Early June annually'
+    },
+    location: {
+      location_type: LocationType.CITY_AREA,
+      region: 'Fès-Meknès',
+      region_slug: 'fes-meknes',
+      city: 'Fes',
+      city_slug: 'fes',
+      venue_name: 'Bab Al Makina & Historic Sites',
+      venue_type: 'outdoor',
+      area_description: 'Historic venues throughout Fes medina'
+    },
+    status: EventStatus.ANNOUNCED,
     is_verified: true,
-    is_pinned: true,
-    cultural_significance: 9,
-    description: "One of the world's largest music festivals with major international headliners.",
-    image_url: null
+    is_featured: true,
+    description: 'Celebrating sacred music traditions from around the world in Morocco\'s oldest imperial city. Features Sufi brotherhoods, Andalusian orchestras, and sacred music from diverse traditions.',
+    official_website: 'https://fesfestival.com',
+    artists: [],
+    organizer: 'Fes Festival Foundation'
   },
   {
-    id: "fes-sacred-music-2025",
-    name: "Fes Festival of World Sacred Music",
-    slug: "fes-festival-of-world-sacred-music",
-    event_type: "festival",
-    start_date: "2025-06-06",
-    end_date: "2025-06-14",
-    city: "Fes",
-    city_slug: "fes",
-    region: "Fès-Meknès",
-    region_slug: "fes-meknes",
-    venue: "Bab Al Makina",
-    genres: ["Sufi", "Classical", "World Music", "Sacred"],
-    artists: [],
-    organizer: "Fes Festival Foundation",
-    official_website: "https://fesfestival.com",
-    ticket_url: null,
-    status: "announced",
+    id: 'timitar-2025',
+    name: 'Festival Timitar',
+    name_tzm: 'ⴰⵏⵎⵓⴳⴳⴰⵔ ⵏ ⵜⵉⵎⵉⵜⴰⵔ',
+    slug: 'festival-timitar',
+    event_type: EventType.FESTIVAL,
+    traditions: ['ahwach', 'rways', 'world', 'chaabi'],
+    cultural_weight: 4,
+    weight_rationale: 'Principal festival celebrating Amazigh musical heritage, significant for cultural recognition',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-07-10',
+      gregorian_end: '2025-07-13',
+      date_precision: DatePrecision.EXACT,
+      season: 'summer',
+      recurrence_notes: 'Mid-July annually'
+    },
+    location: {
+      location_type: LocationType.CITY_AREA,
+      region: 'Souss-Massa',
+      region_slug: 'souss-massa',
+      city: 'Agadir',
+      city_slug: 'agadir',
+      area_description: 'Multiple stages across Agadir'
+    },
+    status: EventStatus.ANNOUNCED,
     is_verified: true,
-    is_pinned: true,
-    cultural_significance: 9,
-    description: "Celebrating sacred music traditions from around the world in Morocco's oldest imperial city.",
-    image_url: null
+    is_featured: true,
+    description: 'Festival celebrating Amazigh (Berber) music and culture, featuring traditional Rways and Ahwach alongside contemporary Amazigh artists and international world music.',
+    official_website: 'https://festivaltimitar.ma',
+    artists: [],
+    organizer: 'Association Timitar'
   },
   {
-    id: "timitar-2025",
-    name: "Festival Timitar",
-    slug: "festival-timitar",
-    event_type: "festival",
-    start_date: "2025-07-10",
-    end_date: "2025-07-13",
-    city: "Agadir",
-    city_slug: "agadir",
-    region: "Souss-Massa",
-    region_slug: "souss-massa",
-    venue: null,
-    genres: ["Amazigh", "World Music", "Folk"],
-    artists: [],
-    organizer: "Association Timitar",
-    official_website: "https://festivaltimitar.ma",
-    ticket_url: null,
-    status: "announced",
+    id: 'lboulevard-2025',
+    name: 'L\'Boulevard Festival',
+    name_ar: 'مهرجان البوليفارد',
+    slug: 'l-boulevard-festival',
+    event_type: EventType.FESTIVAL,
+    traditions: ['nayda', 'rap-ma', 'rock', 'fusion'],
+    cultural_weight: 3,
+    weight_rationale: 'Established platform for Moroccan alternative music scene since 1999, significant for youth culture',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-09-26',
+      gregorian_end: '2025-09-28',
+      date_precision: DatePrecision.EXACT,
+      season: 'autumn',
+      recurrence_notes: 'Late September annually'
+    },
+    location: {
+      location_type: LocationType.CITY_AREA,
+      region: 'Casablanca-Settat',
+      region_slug: 'casablanca-settat',
+      city: 'Casablanca',
+      city_slug: 'casablanca',
+      venue_name: 'Ancienne Médina',
+      venue_type: 'outdoor',
+      area_description: 'Historic quarter of Casablanca'
+    },
+    status: EventStatus.ANNOUNCED,
     is_verified: true,
-    is_pinned: false,
-    cultural_significance: 8,
-    description: "Festival celebrating Amazigh (Berber) music and culture.",
-    image_url: null
+    is_featured: false,
+    description: 'Casablanca\'s urban music festival showcasing emerging Moroccan rock, hip-hop, and alternative artists. Birthplace of the Nayda movement.',
+    official_website: 'https://boulevard.ma',
+    artists: [],
+    organizer: 'EAC L\'Boulvard'
   },
   {
-    id: "jazzablanca-2025",
-    name: "Jazzablanca",
-    slug: "jazzablanca",
-    event_type: "festival",
-    start_date: "2025-07-03",
-    end_date: "2025-07-05",
-    city: "Casablanca",
-    city_slug: "casablanca",
-    region: "Casablanca-Settat",
-    region_slug: "casablanca-settat",
-    venue: "Anfa Park",
-    genres: ["Jazz", "Soul", "Blues", "Electronic"],
-    artists: [],
-    organizer: "7MO",
-    official_website: "https://jazzablanca.com",
-    ticket_url: null,
-    status: "announced",
-    is_verified: true,
-    is_pinned: false,
-    cultural_significance: 7,
-    description: "Casablanca's premier jazz festival.",
-    image_url: null
-  },
-  {
-    id: "l-boulevard-2025",
-    name: "L'Boulevard Festival",
-    slug: "l-boulevard-festival",
-    event_type: "festival",
-    start_date: "2025-09-26",
-    end_date: "2025-09-28",
-    city: "Casablanca",
-    city_slug: "casablanca",
-    region: "Casablanca-Settat",
-    region_slug: "casablanca-settat",
-    venue: "Ancienne Médina",
-    genres: ["Hip Hop", "Rock", "Electronic", "Urban"],
-    artists: [],
-    organizer: "EAC L'Boulvard",
-    official_website: "https://boulevard.ma",
-    ticket_url: null,
-    status: "announced",
-    is_verified: true,
-    is_pinned: false,
-    cultural_significance: 7,
-    description: "Casablanca's urban music festival for emerging Moroccan artists.",
-    image_url: null
-  },
-  {
-    id: "visa-for-music-2025",
-    name: "Visa For Music",
-    slug: "visa-for-music",
-    event_type: "conference",
-    start_date: "2025-11-19",
-    end_date: "2025-11-22",
-    city: "Rabat",
-    city_slug: "rabat",
-    region: "Rabat-Salé-Kénitra",
-    region_slug: "rabat-sale-kenitra",
-    venue: "Various venues",
-    genres: ["World Music", "African", "Electronic"],
-    artists: [],
-    organizer: "Visa For Music",
-    official_website: "https://visaformusic.com",
-    ticket_url: null,
-    status: "announced",
-    is_verified: true,
-    is_pinned: false,
-    cultural_significance: 7,
-    description: "Africa and Middle East's leading music market and showcase festival.",
-    image_url: null
-  },
-  {
-    id: "tanjazz-2025",
-    name: "Tanjazz Festival",
-    slug: "tanjazz-festival",
-    event_type: "festival",
-    start_date: "2025-09-18",
-    end_date: "2025-09-21",
-    city: "Tangier",
-    city_slug: "tangier",
-    region: "Tanger-Tétouan-Al Hoceïma",
-    region_slug: "tanger-tetouan-al-hoceima",
-    venue: "Palais des Institutions Italiennes",
-    genres: ["Jazz", "Blues", "Soul"],
-    artists: [],
-    organizer: "Tanjazz Association",
-    official_website: "https://tanjazz.org",
-    ticket_url: null,
-    status: "announced",
-    is_verified: true,
-    is_pinned: false,
-    cultural_significance: 6,
-    description: "Tangier's international jazz festival.",
-    image_url: null
-  },
-  {
-    id: "oasis-festival-2025",
-    name: "Oasis Festival",
-    slug: "oasis-festival",
-    event_type: "festival",
-    start_date: "2025-09-12",
-    end_date: "2025-09-14",
-    city: "Marrakech",
-    city_slug: "marrakech",
-    region: "Marrakech-Safi",
-    region_slug: "marrakech-safi",
-    venue: "The Source",
-    genres: ["Electronic", "House", "Techno"],
-    artists: [],
-    organizer: "Oasis Festival",
-    official_website: "https://theoasisfest.com",
-    ticket_url: null,
-    status: "announced",
-    is_verified: true,
-    is_pinned: false,
-    cultural_significance: 6,
-    description: "Boutique electronic music festival in the Atlas Mountains.",
-    image_url: null
-  },
-  {
-    id: "atlas-electronic-2025",
-    name: "Atlas Electronic",
-    slug: "atlas-electronic",
-    event_type: "festival",
-    start_date: "2025-03-28",
-    end_date: "2025-03-30",
-    city: "Marrakech",
-    city_slug: "marrakech",
-    region: "Marrakech-Safi",
-    region_slug: "marrakech-safi",
-    venue: "Fellah Hotel",
-    genres: ["Electronic", "Ambient", "Experimental"],
-    artists: [],
-    organizer: "Atlas Electronic",
-    official_website: "https://atlaselectronic.ma",
-    ticket_url: null,
-    status: "confirmed",
-    is_verified: true,
-    is_pinned: false,
-    cultural_significance: 5,
-    description: "Electronic music gathering in the Moroccan countryside.",
-    image_url: null
-  },
-  {
-    id: "alegria-festival-2025",
-    name: "Alegria Festival",
-    slug: "alegria-festival",
-    event_type: "festival",
-    start_date: "2025-04-25",
-    end_date: "2025-04-27",
-    city: "El Jadida",
-    city_slug: "el-jadida",
-    region: "Casablanca-Settat",
-    region_slug: "casablanca-settat",
-    venue: "Mazagan Beach Resort",
-    genres: ["Electronic", "House", "Disco"],
-    artists: [],
-    organizer: "Alegria Events",
-    official_website: "https://alegriafestival.com",
-    ticket_url: null,
-    status: "announced",
+    id: 'jardin-arts-2025',
+    name: 'Festival International du Jardin des Arts',
+    name_ar: 'المهرجان الدولي لحديقة الفنون',
+    slug: 'festival-jardin-des-arts',
+    event_type: EventType.FESTIVAL,
+    traditions: ['andalusi', 'malhun', 'chaabi'],
+    cultural_weight: 3,
+    weight_rationale: 'Regional festival preserving Andalusian musical heritage in Tétouan',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-05-15',
+      gregorian_end: '2025-05-18',
+      date_precision: DatePrecision.APPROXIMATE,
+      season: 'spring',
+      recurrence_notes: 'Usually mid-May'
+    },
+    location: {
+      location_type: LocationType.FIXED_VENUE,
+      region: 'Tanger-Tétouan-Al Hoceïma',
+      region_slug: 'tanger-tetouan-al-hoceima',
+      city: 'Tétouan',
+      city_slug: 'tetouan',
+      venue_name: 'Jardin Moulay Rachid',
+      venue_type: 'outdoor'
+    },
+    status: EventStatus.ANNOUNCED,
     is_verified: false,
-    is_pinned: false,
-    cultural_significance: 4,
-    description: "Beach electronic music festival on Morocco's Atlantic coast.",
-    image_url: null
+    is_featured: false,
+    description: 'Arts festival in Tétouan featuring Andalusian music traditions and contemporary Moroccan arts.',
+    artists: [],
+    organizer: undefined
   },
   {
-    id: "jardin-des-arts-2025",
-    name: "Festival du Jardin des Arts",
-    slug: "festival-du-jardin-des-arts",
-    event_type: "festival",
-    start_date: "2025-05-15",
-    end_date: "2025-05-18",
-    city: "Tétouan",
-    city_slug: "tetouan",
-    region: "Tanger-Tétouan-Al Hoceïma",
-    region_slug: "tanger-tetouan-al-hoceima",
-    venue: "Jardin Moulay Rachid",
-    genres: ["Andalusian", "Classical", "Folk"],
-    artists: [],
-    organizer: null,
-    official_website: null,
-    ticket_url: null,
-    status: "announced",
+    id: 'awalnart-2025',
+    name: 'Awaln\'Art Festival',
+    slug: 'awalnart-festival',
+    event_type: EventType.FESTIVAL,
+    traditions: ['gnawa', 'fusion', 'world'],
+    cultural_weight: 3,
+    weight_rationale: 'Contemporary arts festival bridging traditional and modern expression',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-06-12',
+      gregorian_end: '2025-06-15',
+      date_precision: DatePrecision.APPROXIMATE,
+      season: 'summer',
+      recurrence_notes: 'Usually early-mid June'
+    },
+    location: {
+      location_type: LocationType.CITY_AREA,
+      region: 'Marrakech-Safi',
+      region_slug: 'marrakech-safi',
+      city: 'Marrakech',
+      city_slug: 'marrakech',
+      area_description: 'Various venues throughout Marrakech medina'
+    },
+    status: EventStatus.ANNOUNCED,
     is_verified: false,
-    is_pinned: false,
-    cultural_significance: 5,
-    description: "Arts festival featuring Andalusian music traditions.",
-    image_url: null
+    is_featured: false,
+    description: 'Contemporary arts and music festival in Marrakech featuring Gnawa fusion and experimental work.',
+    artists: [],
+    organizer: 'Awaln\'Art Association'
   },
   {
-    id: "awaln-art-2025",
-    name: "Awaln'Art Festival",
-    slug: "awalnart-festival",
-    event_type: "festival",
-    start_date: "2025-06-12",
-    end_date: "2025-06-15",
-    city: "Marrakech",
-    city_slug: "marrakech",
-    region: "Marrakech-Safi",
-    region_slug: "marrakech-safi",
-    venue: "Various venues",
-    genres: ["World Music", "Gnawa", "Electronic"],
-    artists: [],
-    organizer: "Awaln'Art Association",
-    official_website: null,
-    ticket_url: null,
-    status: "announced",
+    id: 'merzouga-2025',
+    name: 'Merzouga Music Festival',
+    slug: 'merzouga-music-festival',
+    event_type: EventType.FESTIVAL,
+    traditions: ['gnawa', 'hassani', 'desert-blues'],
+    cultural_weight: 3,
+    weight_rationale: 'Festival celebrating Saharan musical heritage in authentic desert setting',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-10-17',
+      gregorian_end: '2025-10-19',
+      date_precision: DatePrecision.APPROXIMATE,
+      season: 'autumn',
+      recurrence_notes: 'Usually October'
+    },
+    location: {
+      location_type: LocationType.RURAL,
+      region: 'Drâa-Tafilalet',
+      region_slug: 'draa-tafilalet',
+      area_description: 'Erg Chebbi dunes near Merzouga',
+      venue_type: 'desert'
+    },
+    status: EventStatus.ANNOUNCED,
     is_verified: false,
-    is_pinned: false,
-    cultural_significance: 5,
-    description: "Contemporary arts and music festival in Marrakech.",
-    image_url: null
+    is_featured: false,
+    description: 'Music performances in the Sahara desert dunes, featuring Gnawa, Hassani, and desert blues traditions.',
+    artists: [],
+    organizer: undefined
+  },
+
+  // =========================================================================
+  // FESTIVALS - Primarily imported traditions
+  // =========================================================================
+  {
+    id: 'mawazine-2025',
+    name: 'Mawazine Rhythms of the World',
+    name_ar: 'موازين إيقاعات العالم',
+    slug: 'mawazine-rhythms-of-the-world',
+    event_type: EventType.FESTIVAL,
+    traditions: ['pop-intl', 'world', 'rnb', 'chaabi'],
+    cultural_weight: 2,
+    weight_rationale: 'Large commercial festival featuring primarily international pop acts',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-06-20',
+      gregorian_end: '2025-06-28',
+      date_precision: DatePrecision.EXACT,
+      season: 'summer',
+      recurrence_notes: 'Late June annually'
+    },
+    location: {
+      location_type: LocationType.CITY_AREA,
+      region: 'Rabat-Salé-Kénitra',
+      region_slug: 'rabat-sale-kenitra',
+      city: 'Rabat',
+      city_slug: 'rabat',
+      venue_name: 'OLM Souissi & Nahda Stage',
+      venue_type: 'stadium',
+      area_description: 'Multiple stages across Rabat'
+    },
+    status: EventStatus.ANNOUNCED,
+    is_verified: true,
+    is_featured: true,
+    description: 'One of Africa\'s largest music festivals featuring major international headliners alongside Moroccan and Arab artists.',
+    official_website: 'https://mawazine.ma',
+    artists: [],
+    organizer: 'Maroc Cultures'
   },
   {
-    id: "chefchaouen-jazz-2025",
-    name: "Jazz au Chefchaouen",
-    slug: "jazz-au-chefchaouen",
-    event_type: "festival",
-    start_date: "2025-08-07",
-    end_date: "2025-08-09",
-    city: "Chefchaouen",
-    city_slug: "chefchaouen",
-    region: "Tanger-Tétouan-Al Hoceïma",
-    region_slug: "tanger-tetouan-al-hoceima",
-    venue: "Place Outa El Hammam",
-    genres: ["Jazz", "Fusion"],
+    id: 'jazzablanca-2025',
+    name: 'Jazzablanca',
+    slug: 'jazzablanca',
+    event_type: EventType.FESTIVAL,
+    traditions: ['jazz', 'rnb', 'electronic', 'fusion'],
+    cultural_weight: 2,
+    weight_rationale: 'Established jazz festival featuring primarily international artists',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-07-03',
+      gregorian_end: '2025-07-05',
+      date_precision: DatePrecision.EXACT,
+      season: 'summer',
+      recurrence_notes: 'Early July annually'
+    },
+    location: {
+      location_type: LocationType.FIXED_VENUE,
+      region: 'Casablanca-Settat',
+      region_slug: 'casablanca-settat',
+      city: 'Casablanca',
+      city_slug: 'casablanca',
+      venue_name: 'Anfa Park',
+      venue_type: 'outdoor'
+    },
+    status: EventStatus.ANNOUNCED,
+    is_verified: true,
+    is_featured: false,
+    description: 'Casablanca\'s premier jazz festival bringing international jazz, soul, and electronic acts.',
+    official_website: 'https://jazzablanca.com',
     artists: [],
-    organizer: null,
-    official_website: null,
-    ticket_url: null,
-    status: "announced",
-    is_verified: false,
-    is_pinned: false,
-    cultural_significance: 4,
-    description: "Jazz festival in the blue-painted mountain town.",
-    image_url: null
+    organizer: '7MO'
   },
   {
-    id: "merzouga-music-2025",
-    name: "Merzouga Music Festival",
-    slug: "merzouga-music-festival",
-    event_type: "festival",
-    start_date: "2025-10-17",
-    end_date: "2025-10-19",
-    city: "Merzouga",
-    city_slug: "merzouga",
-    region: "Drâa-Tafilalet",
-    region_slug: "draa-tafilalet",
-    venue: "Erg Chebbi Dunes",
-    genres: ["World Music", "Gnawa", "Desert Blues"],
+    id: 'tanjazz-2025',
+    name: 'Tanjazz Festival',
+    slug: 'tanjazz-festival',
+    event_type: EventType.FESTIVAL,
+    traditions: ['jazz', 'blues'],
+    cultural_weight: 2,
+    weight_rationale: 'Regional jazz festival featuring imported tradition',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-09-18',
+      gregorian_end: '2025-09-21',
+      date_precision: DatePrecision.APPROXIMATE,
+      season: 'autumn',
+      recurrence_notes: 'Usually mid-September'
+    },
+    location: {
+      location_type: LocationType.FIXED_VENUE,
+      region: 'Tanger-Tétouan-Al Hoceïma',
+      region_slug: 'tanger-tetouan-al-hoceima',
+      city: 'Tangier',
+      city_slug: 'tangier',
+      venue_name: 'Palais des Institutions Italiennes',
+      venue_type: 'cultural_center'
+    },
+    status: EventStatus.ANNOUNCED,
+    is_verified: true,
+    is_featured: false,
+    description: 'Tangier\'s international jazz festival.',
+    official_website: 'https://tanjazz.org',
     artists: [],
-    organizer: null,
-    official_website: null,
-    ticket_url: null,
-    status: "announced",
+    organizer: 'Tanjazz Association'
+  },
+  {
+    id: 'chefchaouen-jazz-2025',
+    name: 'Jazz au Chefchaouen',
+    slug: 'jazz-chefchaouen',
+    event_type: EventType.FESTIVAL,
+    traditions: ['jazz', 'fusion'],
+    cultural_weight: 2,
+    weight_rationale: 'Small regional jazz festival',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-08-07',
+      gregorian_end: '2025-08-09',
+      date_precision: DatePrecision.APPROXIMATE,
+      season: 'summer',
+      recurrence_notes: 'Usually early August'
+    },
+    location: {
+      location_type: LocationType.CITY_AREA,
+      region: 'Tanger-Tétouan-Al Hoceïma',
+      region_slug: 'tanger-tetouan-al-hoceima',
+      city: 'Chefchaouen',
+      city_slug: 'chefchaouen',
+      venue_name: 'Place Outa El Hammam',
+      venue_type: 'outdoor',
+      area_description: 'Main square and surrounding areas'
+    },
+    status: EventStatus.ANNOUNCED,
     is_verified: false,
-    is_pinned: false,
-    cultural_significance: 5,
-    description: "Music performances in the Sahara desert dunes.",
-    image_url: null
+    is_featured: false,
+    description: 'Jazz festival in the distinctive blue-painted mountain town.',
+    artists: [],
+    organizer: undefined
+  },
+  {
+    id: 'oasis-2025',
+    name: 'Oasis Festival',
+    slug: 'oasis-festival',
+    event_type: EventType.FESTIVAL,
+    traditions: ['electronic'],
+    cultural_weight: 2,
+    weight_rationale: 'Boutique electronic festival featuring imported tradition, attracts international audience',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-09-12',
+      gregorian_end: '2025-09-14',
+      date_precision: DatePrecision.EXACT,
+      season: 'autumn',
+      recurrence_notes: 'Usually mid-September'
+    },
+    location: {
+      location_type: LocationType.FIXED_VENUE,
+      region: 'Marrakech-Safi',
+      region_slug: 'marrakech-safi',
+      city: 'Marrakech',
+      city_slug: 'marrakech',
+      venue_name: 'The Source',
+      venue_type: 'outdoor',
+      area_description: 'Resort venue in the Atlas foothills'
+    },
+    status: EventStatus.ANNOUNCED,
+    is_verified: true,
+    is_featured: false,
+    description: 'Boutique electronic music festival set against the Atlas Mountains.',
+    official_website: 'https://theoasisfest.com',
+    artists: [],
+    organizer: 'Oasis Festival'
+  },
+  {
+    id: 'atlas-electronic-2025',
+    name: 'Atlas Electronic',
+    slug: 'atlas-electronic',
+    event_type: EventType.FESTIVAL,
+    traditions: ['electronic'],
+    cultural_weight: 2,
+    weight_rationale: 'Electronic music gathering in Moroccan countryside',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-03-28',
+      gregorian_end: '2025-03-30',
+      date_precision: DatePrecision.EXACT,
+      season: 'spring',
+      recurrence_notes: 'Usually late March'
+    },
+    location: {
+      location_type: LocationType.FIXED_VENUE,
+      region: 'Marrakech-Safi',
+      region_slug: 'marrakech-safi',
+      city: 'Marrakech',
+      city_slug: 'marrakech',
+      venue_name: 'Fellah Hotel',
+      venue_type: 'outdoor',
+      area_description: 'Rural venue outside Marrakech'
+    },
+    status: EventStatus.CONFIRMED,
+    is_verified: true,
+    is_featured: false,
+    description: 'Electronic music gathering in the Moroccan countryside outside Marrakech.',
+    official_website: 'https://atlaselectronic.ma',
+    artists: [],
+    organizer: 'Atlas Electronic'
+  },
+  {
+    id: 'alegria-2025',
+    name: 'Alegria Festival',
+    slug: 'alegria-festival',
+    event_type: EventType.FESTIVAL,
+    traditions: ['electronic'],
+    cultural_weight: 1,
+    weight_rationale: 'Commercial beach electronic festival with minimal cultural specificity',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-04-25',
+      gregorian_end: '2025-04-27',
+      date_precision: DatePrecision.APPROXIMATE,
+      season: 'spring',
+      recurrence_notes: 'Usually late April'
+    },
+    location: {
+      location_type: LocationType.FIXED_VENUE,
+      region: 'Casablanca-Settat',
+      region_slug: 'casablanca-settat',
+      city: 'El Jadida',
+      city_slug: 'el-jadida',
+      venue_name: 'Mazagan Beach Resort',
+      venue_type: 'outdoor'
+    },
+    status: EventStatus.ANNOUNCED,
+    is_verified: false,
+    is_featured: false,
+    description: 'Beach electronic music festival on Morocco\'s Atlantic coast.',
+    official_website: 'https://alegriafestival.com',
+    artists: [],
+    organizer: 'Alegria Events'
+  },
+
+  // =========================================================================
+  // SHOWCASE
+  // =========================================================================
+  {
+    id: 'visa-music-2025',
+    name: 'Visa For Music',
+    name_ar: 'فيزا للموسيقى',
+    slug: 'visa-for-music',
+    event_type: EventType.SHOWCASE,
+    traditions: ['world', 'fusion', 'gnawa', 'chaabi'],
+    cultural_weight: 3,
+    weight_rationale: 'Africa and Middle East\'s leading music market, significant for regional industry development',
+    timing: {
+      temporal_type: TemporalType.FIXED_ANNUAL,
+      gregorian_start: '2025-11-19',
+      gregorian_end: '2025-11-22',
+      date_precision: DatePrecision.EXACT,
+      season: 'autumn',
+      recurrence_notes: 'Mid-to-late November annually'
+    },
+    location: {
+      location_type: LocationType.CITY_AREA,
+      region: 'Rabat-Salé-Kénitra',
+      region_slug: 'rabat-sale-kenitra',
+      city: 'Rabat',
+      city_slug: 'rabat',
+      area_description: 'Various venues throughout Rabat',
+      venue_type: 'cultural_center'
+    },
+    status: EventStatus.ANNOUNCED,
+    is_verified: true,
+    is_featured: false,
+    description: 'Africa and Middle East\'s leading music market and showcase festival. Features artist showcases, professional conferences, and networking for the music industry.',
+    official_website: 'https://visaformusic.com',
+    artists: [],
+    organizer: 'Visa For Music'
   }
 ];
+
+// =============================================================================
+// DATA ACCESS FUNCTIONS
+// =============================================================================
 
 export function getEvents(): Event[] {
   return EVENTS;
@@ -406,57 +614,128 @@ export function getEventBySlug(slug: string): Event | undefined {
 export function getUpcomingEvents(): Event[] {
   const today = new Date().toISOString().split('T')[0];
   return EVENTS
-    .filter(e => e.start_date >= today)
+    .filter(e => {
+      const start = e.timing.gregorian_start;
+      return start && start >= today;
+    })
     .sort((a, b) => {
-      if (a.is_pinned && !b.is_pinned) return -1;
-      if (!a.is_pinned && b.is_pinned) return 1;
-      return a.start_date.localeCompare(b.start_date);
+      // Featured first, then by cultural weight, then by date
+      if (a.is_featured && !b.is_featured) return -1;
+      if (!a.is_featured && b.is_featured) return 1;
+      if (a.cultural_weight !== b.cultural_weight) return b.cultural_weight - a.cultural_weight;
+      return (a.timing.gregorian_start || '').localeCompare(b.timing.gregorian_start || '');
     });
 }
 
 export function getFeaturedEvents(): Event[] {
   return EVENTS
-    .filter(e => e.is_pinned || e.cultural_significance >= 8)
-    .sort((a, b) => b.cultural_significance - a.cultural_significance);
+    .filter(e => e.is_featured || e.cultural_weight >= 4)
+    .sort((a, b) => b.cultural_weight - a.cultural_weight);
 }
 
 export function getEventsByCity(citySlug: string): Event[] {
-  return EVENTS.filter(e => e.city_slug === citySlug);
+  return EVENTS.filter(e => e.location.city_slug === citySlug);
 }
 
-export function getEventsByGenre(genre: string): Event[] {
-  const g = genre.toLowerCase();
-  return EVENTS.filter(e => e.genres.some(eg => eg.toLowerCase() === g));
+export function getEventsByRegion(regionSlug: string): Event[] {
+  return EVENTS.filter(e => e.location.region_slug === regionSlug);
 }
 
-export function getCities(): { name: string; slug: string; count: number }[] {
-  const cityMap = new Map<string, { name: string; slug: string; count: number }>();
+export function getEventsByTradition(traditionId: string): Event[] {
+  return EVENTS.filter(e => e.traditions.includes(traditionId));
+}
+
+export function getEventsByType(eventType: EventType): Event[] {
+  return EVENTS.filter(e => e.event_type === eventType);
+}
+
+export function getEventsByTraditionCategory(category: TraditionCategory): Event[] {
+  return EVENTS.filter(e =>
+    e.traditions.some(tid => {
+      const tradition = MUSIC_TRADITIONS[tid];
+      return tradition && tradition.category === category;
+    })
+  );
+}
+
+// =============================================================================
+// AGGREGATION FUNCTIONS
+// =============================================================================
+
+export interface CityStats {
+  name: string;
+  slug: string;
+  region: string;
+  count: number;
+}
+
+export function getCities(): CityStats[] {
+  const cityMap = new Map<string, CityStats>();
   for (const event of EVENTS) {
-    const existing = cityMap.get(event.city_slug);
+    if (!event.location.city_slug || !event.location.city) continue;
+    const existing = cityMap.get(event.location.city_slug);
     if (existing) {
       existing.count++;
     } else {
-      cityMap.set(event.city_slug, { name: event.city, slug: event.city_slug, count: 1 });
+      cityMap.set(event.location.city_slug, {
+        name: event.location.city,
+        slug: event.location.city_slug,
+        region: event.location.region,
+        count: 1
+      });
     }
   }
   return Array.from(cityMap.values()).sort((a, b) => b.count - a.count);
 }
 
-export function getGenres(): { name: string; slug: string; count: number }[] {
-  const genreMap = new Map<string, { name: string; slug: string; count: number }>();
+export interface TraditionStats {
+  id: string;
+  name: string;
+  category: TraditionCategory;
+  sacred: boolean;
+  count: number;
+}
+
+export function getTraditions(): TraditionStats[] {
+  const tradMap = new Map<string, TraditionStats>();
   for (const event of EVENTS) {
-    for (const genre of event.genres) {
-      const slug = genre.toLowerCase().replace(/\s+/g, '-');
-      const existing = genreMap.get(slug);
+    for (const tid of event.traditions) {
+      const tradition = MUSIC_TRADITIONS[tid];
+      if (!tradition) continue;
+      const existing = tradMap.get(tid);
       if (existing) {
         existing.count++;
       } else {
-        genreMap.set(slug, { name: genre, slug, count: 1 });
+        tradMap.set(tid, {
+          id: tradition.id,
+          name: tradition.name,
+          category: tradition.category,
+          sacred: tradition.sacred,
+          count: 1
+        });
       }
     }
   }
-  return Array.from(genreMap.values()).sort((a, b) => b.count - a.count);
+  return Array.from(tradMap.values()).sort((a, b) => b.count - a.count);
 }
+
+export function getEventTypes(): { type: EventType; label: string; count: number }[] {
+  const typeMap = new Map<EventType, number>();
+  for (const event of EVENTS) {
+    typeMap.set(event.event_type, (typeMap.get(event.event_type) || 0) + 1);
+  }
+  return Array.from(typeMap.entries())
+    .map(([type, count]) => ({
+      type,
+      label: EventTypeLabels[type],
+      count
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+// =============================================================================
+// FORMATTING FUNCTIONS
+// =============================================================================
 
 export function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -467,16 +746,56 @@ export function formatDate(dateStr: string): string {
   });
 }
 
-export function formatDateRange(start: string, end: string | null): string {
-  const startDate = new Date(start);
-  const startStr = startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+export function formatDateRange(timing: EventTiming): string {
+  const { gregorian_start, gregorian_end, date_precision, season, recurrence_notes } = timing;
 
-  if (!end || end === start) {
-    return `${startStr}, ${startDate.getFullYear()}`;
+  if (!gregorian_start) {
+    if (season) return `${season.charAt(0).toUpperCase() + season.slice(1)} (dates TBA)`;
+    if (recurrence_notes) return recurrence_notes;
+    return 'Dates TBA';
   }
 
-  const endDate = new Date(end);
+  const startDate = new Date(gregorian_start);
+  const startStr = startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+  const prefix = date_precision === DatePrecision.APPROXIMATE ? '~' : '';
+
+  if (!gregorian_end || gregorian_end === gregorian_start) {
+    return `${prefix}${startStr}, ${startDate.getFullYear()}`;
+  }
+
+  const endDate = new Date(gregorian_end);
   const endStr = endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
-  return `${startStr} - ${endStr}, ${endDate.getFullYear()}`;
+  return `${prefix}${startStr} - ${endStr}, ${endDate.getFullYear()}`;
+}
+
+export function formatLocation(location: EventLocation): string {
+  const parts: string[] = [];
+
+  if (location.venue_name) {
+    parts.push(location.venue_name);
+  }
+
+  if (location.city) {
+    parts.push(location.city);
+  } else if (location.area_description) {
+    parts.push(location.area_description);
+  }
+
+  if (!location.city) {
+    parts.push(location.region);
+  }
+
+  return parts.join(', ');
+}
+
+// Legacy compatibility - maps to old genre system
+export function getGenres(): { name: string; slug: string; count: number }[] {
+  const traditions = getTraditions();
+  return traditions.map(t => ({
+    name: t.name,
+    slug: t.id,
+    count: t.count
+  }));
 }

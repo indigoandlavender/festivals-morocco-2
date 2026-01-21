@@ -1,6 +1,22 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { getEvents, getEventBySlug, formatDateRange, formatDate } from '../../lib/api';
+import {
+  getEvents,
+  getEventBySlug,
+  formatDateRange,
+  formatLocation,
+  EventType,
+  EventTypeLabels,
+  EventTypeDescriptions,
+  TraditionCategory,
+  TraditionCategoryLabels,
+  TemporalType,
+  TemporalTypeLabels,
+  DatePrecision,
+  EventStatus,
+  EventStatusLabels,
+  MUSIC_TRADITIONS
+} from '../../lib/api';
 
 export function getStaticPaths() {
   const events = getEvents();
@@ -16,29 +32,48 @@ if (!event) {
   return Astro.redirect('/events');
 }
 
+const eventTraditions = event.traditions
+  .map(tid => MUSIC_TRADITIONS[tid])
+  .filter(Boolean);
+
+const hasSacredTradition = eventTraditions.some(t => t.sacred);
+const rootedTraditions = eventTraditions.filter(t => t.category === TraditionCategory.ROOTED);
+const hybridTraditions = eventTraditions.filter(t => t.category === TraditionCategory.HYBRID);
+const importedTraditions = eventTraditions.filter(t => t.category === TraditionCategory.IMPORTED);
+
+// Schema.org structured data
 const schemaOrg = {
   "@context": "https://schema.org",
   "@type": "MusicEvent",
   "name": event.name,
-  "startDate": event.start_date,
-  "endDate": event.end_date || event.start_date,
+  "startDate": event.timing.gregorian_start,
+  "endDate": event.timing.gregorian_end || event.timing.gregorian_start,
   "location": {
     "@type": "Place",
-    "name": event.venue || event.city,
+    "name": event.location.venue_name || event.location.city || event.location.area_description,
     "address": {
       "@type": "PostalAddress",
-      "addressLocality": event.city,
-      "addressRegion": event.region,
+      "addressLocality": event.location.city,
+      "addressRegion": event.location.region,
       "addressCountry": "MA"
     }
   },
   "description": event.description,
   "url": event.official_website,
-  "eventStatus": event.status === 'confirmed' ? "https://schema.org/EventScheduled" : "https://schema.org/EventPostponed"
+  "eventStatus": event.status === 'confirmed'
+    ? "https://schema.org/EventScheduled"
+    : event.status === 'cancelled'
+    ? "https://schema.org/EventCancelled"
+    : event.status === 'postponed'
+    ? "https://schema.org/EventPostponed"
+    : "https://schema.org/EventScheduled"
 };
 ---
 
-<Base title={`${event.name} - Festivals in Morocco`} description={event.description || `${event.name} in ${event.city}, Morocco`}>
+<Base
+  title={`${event.name} - Festivals in Morocco`}
+  description={event.description || `${event.name} in ${event.location.city || event.location.region}, Morocco`}
+>
   <script type="application/ld+json" set:html={JSON.stringify(schemaOrg)} />
 
   <nav class="breadcrumb">
@@ -52,12 +87,20 @@ const schemaOrg = {
   <article class="event-detail">
     <header>
       <div class="event-meta">
-        <span class="event-type">{event.event_type}</span>
+        <span class="event-type-badge">{EventTypeLabels[event.event_type]}</span>
         {event.is_verified && <span class="verified-badge">Verified</span>}
-        <span class="event-status" data-status={event.status}>{event.status}</span>
+        {hasSacredTradition && <span class="sacred-badge">Sacred Tradition</span>}
+        <span class="status-badge" data-status={event.status}>{EventStatusLabels[event.status]}</span>
       </div>
-      <h1>{event.name}</h1>
-      <p class="event-date-large">{formatDateRange(event.start_date, event.end_date)}</p>
+
+      <h1>
+        {event.name}
+        {event.name_ar && <span class="name-ar">{event.name_ar}</span>}
+        {event.name_tzm && <span class="name-tzm">{event.name_tzm}</span>}
+      </h1>
+
+      <p class="event-date-large">{formatDateRange(event.timing)}</p>
+      <p class="event-location-large">{formatLocation(event.location)}</p>
     </header>
 
     <div class="event-body">
@@ -80,16 +123,69 @@ const schemaOrg = {
           </section>
         )}
 
-        <section class="genres-section">
-          <h2>Genres</h2>
-          <div class="genre-list">
-            {event.genres.map(genre => (
-              <a href={`/genres/${genre.toLowerCase().replace(/\s+/g, '-')}`} class="genre-tag-large">
-                {genre}
-              </a>
-            ))}
-          </div>
+        <section class="traditions-section">
+          <h2>Music Traditions</h2>
+          <p class="section-intro">
+            This event features music from the following traditions:
+          </p>
+
+          {rootedTraditions.length > 0 && (
+            <div class="tradition-group">
+              <h3>Rooted Traditions</h3>
+              <p class="group-desc">Ancestral, pre-colonial, indigenous music forms</p>
+              <div class="tradition-list">
+                {rootedTraditions.map(tradition => (
+                  <a href={`/traditions/${tradition.id}`} class="tradition-card" data-sacred={tradition.sacred}>
+                    <span class="tradition-name">
+                      {tradition.name}
+                      {tradition.sacred && <span class="sacred-marker" title="Sacred tradition">◆</span>}
+                    </span>
+                    {tradition.name_ar && <span class="tradition-name-local">{tradition.name_ar}</span>}
+                    {tradition.name_tzm && <span class="tradition-name-local">{tradition.name_tzm}</span>}
+                    <span class="tradition-desc">{tradition.description}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {hybridTraditions.length > 0 && (
+            <div class="tradition-group">
+              <h3>Hybrid / Contemporary</h3>
+              <p class="group-desc">Moroccan synthesis, post-independence forms</p>
+              <div class="tradition-list">
+                {hybridTraditions.map(tradition => (
+                  <a href={`/traditions/${tradition.id}`} class="tradition-card">
+                    <span class="tradition-name">{tradition.name}</span>
+                    <span class="tradition-desc">{tradition.description}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {importedTraditions.length > 0 && (
+            <div class="tradition-group">
+              <h3>International</h3>
+              <p class="group-desc">International forms present in Morocco</p>
+              <div class="tradition-list">
+                {importedTraditions.map(tradition => (
+                  <a href={`/traditions/${tradition.id}`} class="tradition-card">
+                    <span class="tradition-name">{tradition.name}</span>
+                    <span class="tradition-desc">{tradition.description}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
+
+        {event.historical_reference && (
+          <section class="historical">
+            <h2>Historical Context</h2>
+            <p>{event.historical_reference}</p>
+          </section>
+        )}
       </div>
 
       <aside class="event-sidebar">
@@ -98,20 +194,43 @@ const schemaOrg = {
 
           <div class="info-row">
             <span class="info-label">Date</span>
-            <span class="info-value">{formatDateRange(event.start_date, event.end_date)}</span>
+            <span class="info-value">
+              {formatDateRange(event.timing)}
+              {event.timing.date_precision === DatePrecision.APPROXIMATE && (
+                <span class="precision-note">(approximate)</span>
+              )}
+            </span>
           </div>
+
+          <div class="info-row">
+            <span class="info-label">Recurrence</span>
+            <span class="info-value">{TemporalTypeLabels[event.timing.temporal_type]}</span>
+          </div>
+
+          {event.timing.recurrence_notes && (
+            <div class="info-row">
+              <span class="info-label">Pattern</span>
+              <span class="info-value">{event.timing.recurrence_notes}</span>
+            </div>
+          )}
 
           <div class="info-row">
             <span class="info-label">Location</span>
             <span class="info-value">
-              <a href={`/cities/${event.city_slug}`}>{event.city}</a>, {event.region}
+              {event.location.city ? (
+                <a href={`/cities/${event.location.city_slug}`}>{event.location.city}</a>
+              ) : (
+                event.location.area_description
+              )}
+              <br />
+              <span class="region-name">{event.location.region}</span>
             </span>
           </div>
 
-          {event.venue && (
+          {event.location.venue_name && (
             <div class="info-row">
               <span class="info-label">Venue</span>
-              <span class="info-value">{event.venue}</span>
+              <span class="info-value">{event.location.venue_name}</span>
             </div>
           )}
 
@@ -124,12 +243,17 @@ const schemaOrg = {
 
           <div class="info-row">
             <span class="info-label">Type</span>
-            <span class="info-value capitalize">{event.event_type}</span>
+            <span class="info-value">
+              {EventTypeLabels[event.event_type]}
+              <span class="type-desc">{EventTypeDescriptions[event.event_type]}</span>
+            </span>
           </div>
 
           <div class="info-row">
             <span class="info-label">Status</span>
-            <span class="info-value capitalize">{event.status}</span>
+            <span class="info-value status-value" data-status={event.status}>
+              {EventStatusLabels[event.status]}
+            </span>
           </div>
         </div>
 
@@ -148,6 +272,22 @@ const schemaOrg = {
             )}
           </div>
         )}
+
+        <div class="classification-card">
+          <h3>Classification</h3>
+          <div class="classification-row">
+            <span class="class-label">Cultural Weight</span>
+            <span class="class-value">
+              <span class="weight-dots">
+                {[1, 2, 3, 4, 5].map(n => (
+                  <span class={`dot ${n <= event.cultural_weight ? 'filled' : ''}`} />
+                ))}
+              </span>
+              <span class="weight-number">{event.cultural_weight}/5</span>
+            </span>
+          </div>
+          <p class="weight-rationale">{event.weight_rationale}</p>
+        </div>
       </aside>
     </div>
   </article>
@@ -179,16 +319,17 @@ const schemaOrg = {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    flex-wrap: wrap;
     margin-bottom: 1rem;
   }
 
-  .event-type {
+  .event-type-badge {
     font-size: 0.75rem;
     color: var(--text-muted);
     background: var(--bg-card);
     padding: 0.25rem 0.75rem;
     border-radius: 4px;
-    text-transform: capitalize;
+    border: 1px solid var(--border);
   }
 
   .verified-badge {
@@ -199,19 +340,26 @@ const schemaOrg = {
     border-radius: 4px;
   }
 
-  .event-status {
+  .sacred-badge {
+    font-size: 0.75rem;
+    background: #7c3aed;
+    color: #fff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+  }
+
+  .status-badge {
     font-size: 0.75rem;
     padding: 0.25rem 0.75rem;
     border-radius: 4px;
-    text-transform: capitalize;
   }
 
-  .event-status[data-status="confirmed"] {
+  .status-badge[data-status="confirmed"] {
     background: rgba(34, 197, 94, 0.2);
     color: var(--accent);
   }
 
-  .event-status[data-status="announced"] {
+  .status-badge[data-status="announced"] {
     background: rgba(59, 130, 246, 0.2);
     color: #60a5fa;
   }
@@ -223,15 +371,29 @@ const schemaOrg = {
     margin-bottom: 0.75rem;
   }
 
+  .name-ar, .name-tzm {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+  }
+
   .event-date-large {
     font-size: 1.25rem;
     color: var(--accent);
     font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  .event-location-large {
+    font-size: 1.1rem;
+    color: var(--text-muted);
   }
 
   .event-body {
     display: grid;
-    grid-template-columns: 1fr 350px;
+    grid-template-columns: 1fr 380px;
     gap: 3rem;
   }
 
@@ -266,24 +428,74 @@ const schemaOrg = {
     border-radius: 8px;
   }
 
-  .genre-list {
+  .section-intro {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .tradition-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .tradition-group h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .group-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .tradition-list {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 0.5rem;
   }
 
-  .genre-tag-large {
+  .tradition-card {
+    display: block;
+    padding: 1rem;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    padding: 0.5rem 1rem;
-    border-radius: 100px;
-    font-size: 0.9rem;
+    border-radius: 8px;
     transition: border-color 0.2s;
   }
 
-  .genre-tag-large:hover {
+  .tradition-card:hover {
     border-color: var(--accent);
-    color: var(--accent);
+  }
+
+  .tradition-card[data-sacred="true"] {
+    border-left: 3px solid #7c3aed;
+  }
+
+  .tradition-name {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .sacred-marker {
+    color: #7c3aed;
+    margin-left: 0.25rem;
+  }
+
+  .tradition-name-local {
+    display: inline-block;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-right: 0.5rem;
+  }
+
+  .tradition-desc {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
   }
 
   .event-sidebar {
@@ -293,7 +505,8 @@ const schemaOrg = {
   }
 
   .info-card,
-  .links-card {
+  .links-card,
+  .classification-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -301,7 +514,8 @@ const schemaOrg = {
   }
 
   .info-card h3,
-  .links-card h3 {
+  .links-card h3,
+  .classification-card h3 {
     font-size: 1rem;
     font-weight: 600;
     margin-bottom: 1rem;
@@ -312,6 +526,7 @@ const schemaOrg = {
     justify-content: space-between;
     padding: 0.75rem 0;
     border-bottom: 1px solid var(--border);
+    gap: 1rem;
   }
 
   .info-row:last-child {
@@ -321,6 +536,7 @@ const schemaOrg = {
   .info-label {
     color: var(--text-muted);
     font-size: 0.9rem;
+    flex-shrink: 0;
   }
 
   .info-value {
@@ -332,8 +548,30 @@ const schemaOrg = {
     color: var(--accent);
   }
 
-  .capitalize {
-    text-transform: capitalize;
+  .region-name {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .precision-note {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .type-desc {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+  }
+
+  .status-value[data-status="confirmed"] {
+    color: var(--accent);
+  }
+
+  .status-value[data-status="announced"] {
+    color: #60a5fa;
   }
 
   .link-btn {
@@ -365,6 +603,53 @@ const schemaOrg = {
     background: var(--accent-hover);
   }
 
+  .classification-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .class-label {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .class-value {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .weight-dots {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  .dot.filled {
+    background: var(--accent);
+  }
+
+  .weight-number {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .weight-rationale {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
   .back-nav {
     margin-top: 3rem;
     padding-top: 2rem;
@@ -387,6 +672,10 @@ const schemaOrg = {
 
     .event-detail h1 {
       font-size: 2rem;
+    }
+
+    .name-ar, .name-tzm {
+      font-size: 1.25rem;
     }
   }
 </style>

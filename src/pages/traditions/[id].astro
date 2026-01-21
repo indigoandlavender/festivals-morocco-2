@@ -1,25 +1,27 @@
 ---
 import Base from '../../layouts/Base.astro';
 import {
-  getCities,
-  getEventsByCity,
+  getTraditions,
+  getEventsByTradition,
   formatDateRange,
   formatLocation,
   EventTypeLabels,
-  MUSIC_TRADITIONS,
-  TraditionCategory
+  TraditionCategory,
+  TraditionCategoryLabels,
+  MUSIC_TRADITIONS
 } from '../../lib/api';
 
 export function getStaticPaths() {
-  const cities = getCities();
-  return cities.map(city => ({
-    params: { slug: city.slug },
-    props: { city }
+  const traditions = getTraditions();
+  return traditions.map(tradition => ({
+    params: { id: tradition.id },
+    props: { tradition }
   }));
 }
 
-const { city } = Astro.props;
-const events = getEventsByCity(city.slug);
+const { tradition } = Astro.props;
+const fullTradition = MUSIC_TRADITIONS[tradition.id];
+const events = getEventsByTradition(tradition.id);
 
 // Sort events by cultural weight then date
 events.sort((a, b) => {
@@ -27,46 +29,44 @@ events.sort((a, b) => {
   return (a.timing.gregorian_start || '').localeCompare(b.timing.gregorian_start || '');
 });
 
-// Get unique traditions for this city
-const allTraditions = events.flatMap(e => e.traditions);
-const traditionCounts = new Map<string, number>();
-allTraditions.forEach(tid => {
-  traditionCounts.set(tid, (traditionCounts.get(tid) || 0) + 1);
-});
-
-const topTraditions = [...traditionCounts.entries()]
-  .sort((a, b) => b[1] - a[1])
-  .map(([tid]) => MUSIC_TRADITIONS[tid])
-  .filter(Boolean);
+const categoryLabel = TraditionCategoryLabels[tradition.category];
 ---
 
-<Base title={`${city.name} Events - Festivals in Morocco`} description={`Music events and festivals in ${city.name}, Morocco`}>
+<Base
+  title={`${tradition.name} - Music Traditions in Morocco`}
+  description={fullTradition?.description || `Events featuring ${tradition.name} music in Morocco`}
+>
   <nav class="breadcrumb">
     <a href="/">Home</a>
     <span>/</span>
-    <a href="/cities">Cities</a>
+    <a href="/traditions">Traditions</a>
     <span>/</span>
-    <span>{city.name}</span>
+    <span>{tradition.name}</span>
   </nav>
 
   <div class="page-header">
-    <h1>Events in {city.name}</h1>
-    <p class="region">{city.region}, Morocco</p>
-    <p class="subtitle">{events.length} music event{events.length !== 1 ? 's' : ''}</p>
+    <div class="tradition-meta">
+      <span class="category-badge" data-category={tradition.category}>{categoryLabel}</span>
+      {tradition.sacred && <span class="sacred-badge">Sacred Tradition</span>}
+    </div>
+
+    <h1>
+      {tradition.name}
+      {fullTradition?.name_ar && <span class="name-local">{fullTradition.name_ar}</span>}
+      {fullTradition?.name_tzm && <span class="name-local">{fullTradition.name_tzm}</span>}
+    </h1>
+
+    <p class="subtitle">{events.length} event{events.length !== 1 ? 's' : ''} featuring this tradition</p>
   </div>
 
-  {topTraditions.length > 0 && (
-    <div class="city-traditions">
-      <span class="label">Traditions:</span>
-      {topTraditions.slice(0, 8).map(tradition => (
-        <a
-          href={`/traditions/${tradition.id}`}
-          class="tradition-link"
-          data-category={tradition.category}
-        >
-          {tradition.name}
-        </a>
-      ))}
+  {fullTradition?.description && (
+    <div class="description-card">
+      <p>{fullTradition.description}</p>
+      {fullTradition.regions && fullTradition.regions.length > 0 && (
+        <p class="regions">
+          <strong>Regions:</strong> {fullTradition.regions.join(', ')}
+        </p>
+      )}
     </div>
   )}
 
@@ -74,27 +74,25 @@ const topTraditions = [...traditionCounts.entries()]
     {events.map(event => {
       const eventTraditions = event.traditions
         .map(tid => MUSIC_TRADITIONS[tid])
-        .filter(Boolean);
-      const hasSacred = eventTraditions.some(t => t.sacred);
+        .filter(Boolean)
+        .filter(t => t.id !== tradition.id);
 
       return (
         <a href={`/events/${event.slug}`} class="event-card" data-weight={event.cultural_weight}>
           <div class="event-header">
             <span class="event-date">{formatDateRange(event.timing)}</span>
-            <div class="event-badges">
-              {event.is_verified && <span class="verified" title="Verified">✓</span>}
-              {hasSacred && <span class="sacred" title="Features sacred tradition">◆</span>}
-            </div>
+            {event.is_verified && <span class="verified" title="Verified">✓</span>}
           </div>
           <h2>{event.name}</h2>
-          {event.location.venue_name && <p class="event-venue">{event.location.venue_name}</p>}
-          <div class="event-traditions">
-            {eventTraditions.slice(0, 3).map(tradition => (
-              <span class="tradition-tag" data-category={tradition.category}>
-                {tradition.name}
-              </span>
-            ))}
-          </div>
+          <p class="event-location">{formatLocation(event.location)}</p>
+          {eventTraditions.length > 0 && (
+            <div class="other-traditions">
+              <span class="label">Also featuring:</span>
+              {eventTraditions.slice(0, 2).map(t => (
+                <span class="other-tag">{t.name}</span>
+              ))}
+            </div>
+          )}
           <div class="event-footer">
             <span class="event-type">{EventTypeLabels[event.event_type]}</span>
             <span class="event-status" data-status={event.status}>{event.status}</span>
@@ -106,13 +104,13 @@ const topTraditions = [...traditionCounts.entries()]
 
   {events.length === 0 && (
     <div class="no-results">
-      <p>No events currently listed for {city.name}.</p>
+      <p>No events currently listed featuring {tradition.name}.</p>
       <a href="/events" class="btn">Browse all events</a>
     </div>
   )}
 
   <nav class="back-nav">
-    <a href="/cities">&larr; All cities</a>
+    <a href="/traditions">&larr; All traditions</a>
   </nav>
 </Base>
 
@@ -131,19 +129,56 @@ const topTraditions = [...traditionCounts.entries()]
   }
 
   .page-header {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .tradition-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .category-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+  }
+
+  .category-badge[data-category="rooted"] {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--accent);
+  }
+
+  .category-badge[data-category="hybrid"] {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+
+  .category-badge[data-category="imported"] {
+    background: var(--bg);
+    color: var(--text-muted);
+  }
+
+  .sacred-badge {
+    font-size: 0.75rem;
+    background: #7c3aed;
+    color: #fff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
   }
 
   .page-header h1 {
     font-size: 2.5rem;
     font-weight: 700;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
   }
 
-  .region {
+  .name-local {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 400;
     color: var(--text-muted);
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
   }
 
   .subtitle {
@@ -151,42 +186,26 @@ const topTraditions = [...traditionCounts.entries()]
     font-weight: 500;
   }
 
-  .city-traditions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 2rem;
-    padding: 1rem;
+  .description-card {
+    padding: 1.5rem;
     background: var(--bg-card);
-    border-radius: 8px;
-  }
-
-  .city-traditions .label {
-    color: var(--text-muted);
-    font-size: 0.875rem;
-  }
-
-  .tradition-link {
-    font-size: 0.875rem;
-    padding: 0.25rem 0.75rem;
     border: 1px solid var(--border);
-    border-radius: 100px;
-    transition: border-color 0.2s;
+    border-radius: 12px;
+    margin-bottom: 2rem;
   }
 
-  .tradition-link:hover {
-    border-color: var(--accent);
+  .description-card p {
+    line-height: 1.7;
   }
 
-  .tradition-link[data-category="rooted"] {
-    border-color: rgba(34, 197, 94, 0.3);
-    color: var(--accent);
+  .regions {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
   }
 
-  .tradition-link[data-category="hybrid"] {
-    border-color: rgba(59, 130, 246, 0.3);
-    color: #60a5fa;
+  .regions strong {
+    color: var(--text);
   }
 
   .events-grid {
@@ -226,11 +245,6 @@ const topTraditions = [...traditionCounts.entries()]
     font-weight: 500;
   }
 
-  .event-badges {
-    display: flex;
-    gap: 0.375rem;
-  }
-
   .verified {
     background: var(--accent);
     color: #000;
@@ -243,18 +257,6 @@ const topTraditions = [...traditionCounts.entries()]
     font-size: 0.7rem;
   }
 
-  .sacred {
-    background: #7c3aed;
-    color: #fff;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.6rem;
-  }
-
   .event-card h2 {
     font-size: 1.25rem;
     font-weight: 600;
@@ -262,37 +264,30 @@ const topTraditions = [...traditionCounts.entries()]
     line-height: 1.3;
   }
 
-  .event-venue {
+  .event-location {
     color: var(--text-muted);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     margin-bottom: 0.75rem;
   }
 
-  .event-traditions {
+  .other-traditions {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 0.375rem;
     margin-bottom: 1rem;
   }
 
-  .tradition-tag {
-    padding: 0.25rem 0.625rem;
-    border-radius: 100px;
+  .other-traditions .label {
     font-size: 0.75rem;
+    color: var(--text-muted);
   }
 
-  .tradition-tag[data-category="rooted"] {
-    background: rgba(34, 197, 94, 0.15);
-    color: var(--accent);
-  }
-
-  .tradition-tag[data-category="hybrid"] {
-    background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
-  }
-
-  .tradition-tag[data-category="imported"] {
+  .other-tag {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
     background: var(--bg);
+    border-radius: 100px;
     color: var(--text-muted);
   }
 
