@@ -596,6 +596,177 @@ const EVENTS: Event[] = [
     official_website: 'https://visaformusic.com',
     artists: [],
     organizer: 'Visa For Music'
+  },
+
+  // =========================================================================
+  // MOUSSEMS - Traditional gatherings (requires historical_reference)
+  // =========================================================================
+  {
+    id: 'moussem-tan-tan-2025',
+    name: 'Moussem Tan-Tan',
+    name_ar: 'موسم طانطان',
+    slug: 'moussem-tan-tan',
+    event_type: EventType.MOUSSEM,
+    traditions: ['hassani', 'gnawa'],
+    cultural_weight: 5,
+    weight_rationale: 'UNESCO Masterpiece of Oral and Intangible Heritage (2005). Gathering of nomadic peoples of the Sahara, preserving traditions at risk of disappearing.',
+    timing: {
+      temporal_type: TemporalType.APPROXIMATE_ANNUAL,
+      gregorian_start: '2025-05-15',
+      gregorian_end: '2025-05-19',
+      date_precision: DatePrecision.APPROXIMATE,
+      season: 'spring',
+      recurrence_notes: 'Usually May, dates vary annually'
+    },
+    location: {
+      location_type: LocationType.RURAL,
+      region: 'Guelmim-Oued Noun',
+      region_slug: 'guelmim-oued-noun',
+      area_description: 'Tan-Tan and surrounding desert',
+      venue_type: 'desert'
+    },
+    status: EventStatus.ANNOUNCED,
+    is_verified: true,
+    is_featured: true,
+    description: 'Annual gathering of nomadic peoples from across the Sahara. Features camel races, Hassani poetry, traditional music, and the preservation of Sahrawi cultural practices. Originally a commercial and social gathering for desert tribes.',
+    historical_reference: 'Originated as a gathering point for nomadic tribes of the Sahara for trade, social bonds, and conflict resolution. Revived in 2004 after decades of interruption, recognized by UNESCO in 2005 as a Masterpiece of Oral and Intangible Heritage of Humanity.',
+    artists: [],
+    organizer: 'Tan-Tan Province'
+  },
+  {
+    id: 'moussem-moulay-idriss-2025',
+    name: 'Moussem Moulay Idriss Zerhoun',
+    name_ar: 'موسم مولاي إدريس زرهون',
+    slug: 'moussem-moulay-idriss',
+    event_type: EventType.MOUSSEM,
+    traditions: ['sufi', 'andalusi', 'aita'],
+    cultural_weight: 5,
+    weight_rationale: 'Morocco\'s most important religious pilgrimage, honoring the founder of the first Moroccan Islamic dynasty. Continuous tradition since the 8th century.',
+    timing: {
+      temporal_type: TemporalType.LUNAR,
+      gregorian_start: '2025-08-20',
+      gregorian_end: '2025-08-25',
+      date_precision: DatePrecision.APPROXIMATE,
+      islamic_month: 2,
+      recurrence_notes: 'During Safar, the second month of the Islamic calendar. Dates shift ~11 days earlier each Gregorian year.'
+    },
+    location: {
+      location_type: LocationType.CITY_AREA,
+      region: 'Fès-Meknès',
+      region_slug: 'fes-meknes',
+      city: 'Moulay Idriss Zerhoun',
+      city_slug: 'moulay-idriss-zerhoun',
+      area_description: 'Holy town surrounding the tomb of Moulay Idriss I',
+      venue_type: 'sanctuary'
+    },
+    status: EventStatus.ANNOUNCED,
+    is_verified: true,
+    is_featured: true,
+    description: 'Pilgrimage to the tomb of Moulay Idriss I, founder of the Idrisid dynasty and great-grandson of Prophet Muhammad. Features Sufi brotherhoods, processions, traditional music, and religious observances. The town was historically forbidden to non-Muslims.',
+    historical_reference: 'Moulay Idriss I arrived in Morocco in 788 CE and founded the first Moroccan Muslim dynasty. The moussem has been held annually for over a millennium, making it one of the oldest continuous religious gatherings in North Africa.',
+    artists: [],
+    organizer: undefined
+  },
+  {
+    id: 'moussem-imilchil-2025',
+    name: 'Moussem des Fiancés d\'Imilchil',
+    name_ar: 'موسم الخطوبة إملشيل',
+    name_tzm: 'ⴰⵎⵓⴳⴳⴰⵔ ⵏ ⵉⵎⵉⵍⵛⵉⵍ',
+    slug: 'moussem-imilchil',
+    event_type: EventType.MOUSSEM,
+    traditions: ['ahidous', 'ahwach'],
+    cultural_weight: 4,
+    weight_rationale: 'Unique Amazigh betrothal tradition of the Ait Hadiddou tribe. Significant for preserving pre-Islamic marriage customs within an Islamic context.',
+    timing: {
+      temporal_type: TemporalType.AGRICULTURAL,
+      gregorian_start: '2025-09-18',
+      gregorian_end: '2025-09-20',
+      date_precision: DatePrecision.APPROXIMATE,
+      season: 'autumn',
+      recurrence_notes: 'After the harvest, usually mid-September. Exact dates determined locally.'
+    },
+    location: {
+      location_type: LocationType.RURAL,
+      region: 'Drâa-Tafilalet',
+      region_slug: 'draa-tafilalet',
+      province: 'Midelt',
+      area_description: 'Imilchil plateau, High Atlas Mountains (2,200m altitude)',
+      venue_type: 'mountain'
+    },
+    status: EventStatus.ANNOUNCED,
+    is_verified: true,
+    is_featured: false,
+    description: 'Amazigh gathering where young people of the Ait Hadiddou tribe traditionally meet and marry. Features collective Ahidous dancing, traditional dress, and the enactment of betrothal customs. Couples can formalize marriages on the spot.',
+    historical_reference: 'Legend traces the tradition to two lovers from rival tribes, Isli and Tislit, whose tears of forbidden love formed two lakes near Imilchil. The moussem allows young people to choose their own partners, unusual in traditional Amazigh society.',
+    artists: [],
+    organizer: undefined
+  },
+  {
+    id: 'moussem-sidi-ahmed-ou-moussa-2025',
+    name: 'Moussem Sidi Ahmed ou Moussa',
+    name_ar: 'موسم سيدي أحمد أو موسى',
+    name_tzm: 'ⴰⵎⵓⴳⴳⴰⵔ ⵏ ⵙⵉⴷⵉ ⴰⵃⵎⴰⴷ ⵓ ⵎⵓⵙⴰ',
+    slug: 'moussem-sidi-ahmed-ou-moussa',
+    event_type: EventType.MOUSSEM,
+    traditions: ['ahwach', 'rways'],
+    cultural_weight: 4,
+    weight_rationale: 'Unique acrobatic traditions associated with the saint\'s blessing. Origin of Morocco\'s famous acrobatic troupes.',
+    timing: {
+      temporal_type: TemporalType.LUNAR,
+      gregorian_start: '2025-08-01',
+      gregorian_end: '2025-08-04',
+      date_precision: DatePrecision.APPROXIMATE,
+      islamic_month: 1,
+      recurrence_notes: 'Begins on first day of Muharram (Islamic New Year)'
+    },
+    location: {
+      location_type: LocationType.RURAL,
+      region: 'Souss-Massa',
+      region_slug: 'souss-massa',
+      province: 'Tiznit',
+      area_description: 'Village of Sidi Ahmed ou Moussa, near Tafraout in the Anti-Atlas',
+      venue_type: 'sanctuary'
+    },
+    status: EventStatus.ANNOUNCED,
+    is_verified: false,
+    is_featured: false,
+    description: 'Pilgrimage to the tomb of a 16th-century Sufi saint known as the patron of acrobats. Features spectacular acrobatic performances by troupes claiming spiritual descent from the saint, alongside Amazigh music and traditional celebrations.',
+    historical_reference: 'Sidi Ahmed ou Moussa (d. 1563) was a Sufi saint whose followers developed acrobatic practices as a form of spiritual devotion. These traditions gave rise to the famous Moroccan acrobatic troupes (Oulad Sidi Ahmed ou Moussa) who perform internationally.',
+    artists: [],
+    organizer: undefined
+  },
+  {
+    id: 'moussem-moulay-abdellah-amghar-2025',
+    name: 'Moussem Moulay Abdellah Amghar',
+    name_ar: 'موسم مولاي عبد الله أمغار',
+    slug: 'moussem-moulay-abdellah-amghar',
+    event_type: EventType.MOUSSEM,
+    traditions: ['aita', 'chaabi', 'gnawa'],
+    cultural_weight: 4,
+    weight_rationale: 'Major moussem of the Doukkala region, known for fantasia (tbourida) and Aita music. Important gathering for coastal communities.',
+    timing: {
+      temporal_type: TemporalType.APPROXIMATE_ANNUAL,
+      gregorian_start: '2025-08-10',
+      gregorian_end: '2025-08-16',
+      date_precision: DatePrecision.APPROXIMATE,
+      season: 'summer',
+      recurrence_notes: 'Usually mid-August, around 15th of August'
+    },
+    location: {
+      location_type: LocationType.RURAL,
+      region: 'Casablanca-Settat',
+      region_slug: 'casablanca-settat',
+      province: 'El Jadida',
+      area_description: 'Moulay Abdellah village, coastal area south of El Jadida',
+      venue_type: 'sanctuary'
+    },
+    status: EventStatus.ANNOUNCED,
+    is_verified: true,
+    is_featured: false,
+    description: 'Week-long gathering honoring a 12th-century Sufi saint. Famous for spectacular fantasia (horseback gunpowder charges), Aita music performances by chikhate, and traditional commerce. One of the largest moussems in Atlantic Morocco.',
+    historical_reference: 'Moulay Abdellah Amghar was a 12th-century Sufi saint and ancestor of the Alaouite dynasty. The moussem has been held for centuries and is closely tied to the identity of the Doukkala region and its equestrian traditions.',
+    artists: [],
+    organizer: 'El Jadida Province'
   }
 ];
 
