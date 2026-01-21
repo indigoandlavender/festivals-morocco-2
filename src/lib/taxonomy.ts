@@ -450,6 +450,7 @@ export enum EventStatus {
   TENTATIVE = 'tentative',
   POSTPONED = 'postponed',
   CANCELLED = 'cancelled',
+  DORMANT = 'dormant',
   HISTORICAL = 'historical'
 }
 
@@ -459,5 +460,6 @@ export const EventStatusLabels: Record<EventStatus, string> = {
   [EventStatus.TENTATIVE]: 'Tentative',
   [EventStatus.POSTPONED]: 'Postponed',
   [EventStatus.CANCELLED]: 'Cancelled',
+  [EventStatus.DORMANT]: 'Dormant',
   [EventStatus.HISTORICAL]: 'Historical'
 };
