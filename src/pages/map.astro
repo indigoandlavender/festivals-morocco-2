@@ -1,0 +1,681 @@
+---
+import Base from '../layouts/Base.astro';
+import {
+  getEvents,
+  formatDateRange,
+  EventTypeLabels,
+  MUSIC_TRADITIONS
+} from '../lib/api';
+import { CITY_COORDINATES, REGION_CENTERS, MOROCCO_REGIONS_GEOJSON, MOROCCO_BOUNDS } from '../lib/geo';
+import { REGIONS } from '../lib/taxonomy';
+
+const events = getEvents();
+
+// Group events by region
+const eventsByRegion = new Map<string, typeof events>();
+for (const event of events) {
+  const regionSlug = event.location.region_slug;
+  if (!eventsByRegion.has(regionSlug)) {
+    eventsByRegion.set(regionSlug, []);
+  }
+  eventsByRegion.get(regionSlug)!.push(event);
+}
+
+// Build region stats
+const regionStats = REGIONS.map(region => ({
+  ...region,
+  count: eventsByRegion.get(region.slug)?.length || 0,
+  events: eventsByRegion.get(region.slug) || []
+}));
+
+// Get cities with events
+const citiesWithEvents = new Map<string, { name: string; slug: string; region: string; count: number }>();
+for (const event of events) {
+  if (event.location.city_slug && event.location.city) {
+    const existing = citiesWithEvents.get(event.location.city_slug);
+    if (existing) {
+      existing.count++;
+    } else {
+      citiesWithEvents.set(event.location.city_slug, {
+        name: event.location.city,
+        slug: event.location.city_slug,
+        region: event.location.region_slug,
+        count: 1
+      });
+    }
+  }
+}
+
+// Serialize data for client-side
+const clientData = {
+  events: events.map(e => ({
+    id: e.id,
+    name: e.name,
+    slug: e.slug,
+    eventType: e.event_type,
+    eventTypeLabel: EventTypeLabels[e.event_type],
+    traditions: e.traditions.map(tid => MUSIC_TRADITIONS[tid]?.name).filter(Boolean),
+    dateRange: formatDateRange(e.timing),
+    regionSlug: e.location.region_slug,
+    region: e.location.region,
+    citySlug: e.location.city_slug || null,
+    city: e.location.city || null,
+    areaDescription: e.location.area_description || null,
+    locationType: e.location.location_type
+  })),
+  regionStats: regionStats.map(r => ({ slug: r.slug, name: r.name, count: r.count })),
+  cities: Array.from(citiesWithEvents.values()),
+  cityCoordinates: CITY_COORDINATES,
+  regionCenters: REGION_CENTERS,
+  regionsGeoJSON: MOROCCO_REGIONS_GEOJSON,
+  bounds: MOROCCO_BOUNDS
+};
+---
+
+<Base title="Map - Festivals in Morocco">
+  <div class="map-container">
+    <div id="map"></div>
+    <aside class="map-sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2 id="sidebar-title">Morocco</h2>
+        <p id="sidebar-subtitle">{events.length} events in {regionStats.filter(r => r.count > 0).length} regions</p>
+      </div>
+      <div class="sidebar-content" id="sidebar-content">
+        <p class="sidebar-hint">Select a region on the map to view events.</p>
+        <div class="region-list" id="region-list">
+          {regionStats.filter(r => r.count > 0).map(region => (
+            <button class="region-item" data-region={region.slug}>
+              <span class="region-name">{region.name}</span>
+              <span class="region-count">{region.count}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div class="sidebar-events" id="sidebar-events" style="display: none;">
+        <div class="cities-list" id="cities-list"></div>
+        <div class="events-list" id="events-list"></div>
+      </div>
+      <button class="back-button" id="back-button" style="display: none;">
+        &larr; All regions
+      </button>
+    </aside>
+  </div>
+</Base>
+
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+<script is:inline src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+
+<script define:vars={{ clientData }}>
+  const MAPBOX_TOKEN = 'pk.eyJ1IjoiaW5kaWdvYW5kbGF2ZW5kZXIiLCJhIjoiY21kN3B0OTZvMGllNjJpcXY0MnZlZHVlciJ9.1-jV-Pze3d7HZseOAhmkCg';
+
+  mapboxgl.accessToken = MAPBOX_TOKEN;
+
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: {
+      version: 8,
+      sources: {},
+      layers: [
+        {
+          id: 'background',
+          type: 'background',
+          paint: { 'background-color': '#F7F5F2' }
+        }
+      ]
+    },
+    center: [-6.5, 31.5],
+    zoom: 4.5,
+    minZoom: 4,
+    maxZoom: 10,
+    maxBounds: [[-20, 18], [5, 38]]
+  });
+
+  let selectedRegion = null;
+  let selectedCity = null;
+  let cityMarkers = [];
+
+  // DOM elements
+  const sidebar = document.getElementById('sidebar');
+  const sidebarTitle = document.getElementById('sidebar-title');
+  const sidebarSubtitle = document.getElementById('sidebar-subtitle');
+  const sidebarContent = document.getElementById('sidebar-content');
+  const sidebarEvents = document.getElementById('sidebar-events');
+  const citiesList = document.getElementById('cities-list');
+  const eventsList = document.getElementById('events-list');
+  const backButton = document.getElementById('back-button');
+  const regionList = document.getElementById('region-list');
+
+  map.on('load', () => {
+    // Add regions source
+    map.addSource('regions', {
+      type: 'geojson',
+      data: clientData.regionsGeoJSON
+    });
+
+    // Add region fill layer
+    map.addLayer({
+      id: 'region-fill',
+      type: 'fill',
+      source: 'regions',
+      paint: {
+        'fill-color': [
+          'match',
+          ['get', 'slug'],
+          ...clientData.regionStats.flatMap(r => {
+            const opacity = r.count > 0 ? Math.min(0.15 + (r.count * 0.08), 0.5) : 0.03;
+            return [r.slug, `rgba(74, 98, 89, ${opacity})`];
+          }),
+          'rgba(74, 98, 89, 0.03)'
+        ],
+        'fill-opacity': 1
+      }
+    });
+
+    // Add region outline layer
+    map.addLayer({
+      id: 'region-outline',
+      type: 'line',
+      source: 'regions',
+      paint: {
+        'line-color': '#E3DFD9',
+        'line-width': 1
+      }
+    });
+
+    // Add selected region outline layer
+    map.addLayer({
+      id: 'region-selected',
+      type: 'line',
+      source: 'regions',
+      paint: {
+        'line-color': '#4A6259',
+        'line-width': 2
+      },
+      filter: ['==', 'slug', '']
+    });
+
+    // Add region labels
+    for (const region of clientData.regionStats) {
+      if (region.count === 0) continue;
+      const center = clientData.regionCenters[region.slug];
+      if (!center) continue;
+
+      const el = document.createElement('div');
+      el.className = 'region-label';
+      el.innerHTML = `<span class="label-count">${region.count}</span>`;
+      el.dataset.region = region.slug;
+
+      new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([center[1], center[0]])
+        .addTo(map);
+    }
+
+    // Region click handler
+    map.on('click', 'region-fill', (e) => {
+      const slug = e.features[0].properties.slug;
+      selectRegion(slug);
+    });
+
+    // Cursor change on hover
+    map.on('mouseenter', 'region-fill', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'region-fill', () => {
+      map.getCanvas().style.cursor = '';
+    });
+  });
+
+  function selectRegion(slug) {
+    selectedRegion = slug;
+    selectedCity = null;
+
+    const region = clientData.regionStats.find(r => r.slug === slug);
+    if (!region) return;
+
+    // Update map
+    map.setFilter('region-selected', ['==', 'slug', slug]);
+
+    // Zoom to region
+    const feature = clientData.regionsGeoJSON.features.find(f => f.properties.slug === slug);
+    if (feature) {
+      const coords = feature.geometry.coordinates[0];
+      const bounds = coords.reduce((b, c) => {
+        return [
+          [Math.min(b[0][0], c[0]), Math.min(b[0][1], c[1])],
+          [Math.max(b[1][0], c[0]), Math.max(b[1][1], c[1])]
+        ];
+      }, [[Infinity, Infinity], [-Infinity, -Infinity]]);
+
+      map.fitBounds(bounds, { padding: 50, duration: 500 });
+    }
+
+    // Clear existing city markers
+    cityMarkers.forEach(m => m.remove());
+    cityMarkers = [];
+
+    // Add city markers
+    const regionCities = clientData.cities.filter(c => c.region === slug);
+    for (const city of regionCities) {
+      const coords = clientData.cityCoordinates[city.slug];
+      if (!coords) continue;
+
+      const el = document.createElement('div');
+      el.className = 'city-marker';
+      el.innerHTML = `<span class="city-name">${city.name}</span><span class="city-count">${city.count}</span>`;
+      el.dataset.city = city.slug;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectCity(city.slug);
+      });
+
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([coords[1], coords[0]])
+        .addTo(map);
+
+      cityMarkers.push(marker);
+    }
+
+    // Update sidebar
+    sidebarTitle.textContent = region.name;
+    const regionEvents = clientData.events.filter(e => e.regionSlug === slug);
+    sidebarSubtitle.textContent = `${regionEvents.length} event${regionEvents.length !== 1 ? 's' : ''}`;
+
+    sidebarContent.style.display = 'none';
+    sidebarEvents.style.display = 'block';
+    backButton.style.display = 'block';
+
+    // Build cities list
+    if (regionCities.length > 0) {
+      citiesList.innerHTML = `
+        <div class="cities-header">Cities</div>
+        ${regionCities.map(c => `
+          <button class="city-item" data-city="${c.slug}">
+            <span class="city-dot"></span>
+            <span>${c.name}</span>
+            <span class="city-item-count">${c.count}</span>
+          </button>
+        `).join('')}
+      `;
+      citiesList.style.display = 'block';
+
+      // Add city click handlers
+      citiesList.querySelectorAll('.city-item').forEach(btn => {
+        btn.addEventListener('click', () => selectCity(btn.dataset.city));
+      });
+    } else {
+      citiesList.style.display = 'none';
+    }
+
+    // Build events list
+    renderEventsList(regionEvents);
+  }
+
+  function selectCity(slug) {
+    selectedCity = slug;
+
+    // Highlight city marker
+    document.querySelectorAll('.city-marker').forEach(el => {
+      el.classList.toggle('selected', el.dataset.city === slug);
+    });
+    document.querySelectorAll('.city-item').forEach(el => {
+      el.classList.toggle('selected', el.dataset.city === slug);
+    });
+
+    // Filter events
+    const cityEvents = clientData.events.filter(e => e.citySlug === slug);
+    renderEventsList(cityEvents);
+
+    // Zoom to city
+    const coords = clientData.cityCoordinates[slug];
+    if (coords) {
+      map.flyTo({ center: [coords[1], coords[0]], zoom: 9, duration: 500 });
+    }
+  }
+
+  function renderEventsList(events) {
+    const ruralEvents = events.filter(e => !e.citySlug);
+    const cityEvents = events.filter(e => e.citySlug);
+
+    let html = '';
+
+    if (selectedCity) {
+      const city = clientData.cities.find(c => c.slug === selectedCity);
+      html += `<div class="events-header">${city?.name || 'Events'}</div>`;
+    } else {
+      html += `<div class="events-header">Events</div>`;
+    }
+
+    const eventsToShow = selectedCity ? cityEvents.filter(e => e.citySlug === selectedCity) : events;
+
+    for (const event of eventsToShow) {
+      html += `
+        <a href="/events/${event.slug}" class="event-item">
+          <div class="event-item-name">${event.name}</div>
+          <div class="event-item-meta">
+            <span class="event-item-date">${event.dateRange}</span>
+            <span class="event-item-location">${event.city || event.areaDescription || event.region}</span>
+          </div>
+          <div class="event-item-footer">
+            <span class="event-item-traditions">${event.traditions.slice(0, 2).join(', ')}</span>
+            <span class="event-item-type">${event.eventTypeLabel}</span>
+          </div>
+        </a>
+      `;
+    }
+
+    if (!selectedCity && ruralEvents.length > 0) {
+      html += `<div class="rural-header">Rural / unspecified location</div>`;
+      for (const event of ruralEvents) {
+        html += `
+          <a href="/events/${event.slug}" class="event-item rural">
+            <div class="event-item-name">${event.name}</div>
+            <div class="event-item-meta">
+              <span class="event-item-date">${event.dateRange}</span>
+              <span class="event-item-location">${event.areaDescription || event.region}</span>
+            </div>
+            <div class="event-item-footer">
+              <span class="event-item-traditions">${event.traditions.slice(0, 2).join(', ')}</span>
+              <span class="event-item-type">${event.eventTypeLabel}</span>
+            </div>
+          </a>
+        `;
+      }
+    }
+
+    eventsList.innerHTML = html;
+  }
+
+  function resetView() {
+    selectedRegion = null;
+    selectedCity = null;
+
+    // Reset map
+    map.setFilter('region-selected', ['==', 'slug', '']);
+    map.fitBounds([[-17.5, 21], [-1, 36]], { padding: 20, duration: 500 });
+
+    // Clear city markers
+    cityMarkers.forEach(m => m.remove());
+    cityMarkers = [];
+
+    // Reset sidebar
+    sidebarTitle.textContent = 'Morocco';
+    sidebarSubtitle.textContent = `${clientData.events.length} events in ${clientData.regionStats.filter(r => r.count > 0).length} regions`;
+    sidebarContent.style.display = 'block';
+    sidebarEvents.style.display = 'none';
+    backButton.style.display = 'none';
+  }
+
+  // Back button handler
+  backButton.addEventListener('click', resetView);
+
+  // Region list click handler
+  regionList.querySelectorAll('.region-item').forEach(btn => {
+    btn.addEventListener('click', () => selectRegion(btn.dataset.region));
+  });
+</script>
+
+<style>
+  .map-container {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    height: calc(100vh - 140px);
+    margin: -2rem -1.5rem -4rem;
+  }
+
+  #map {
+    width: 100%;
+    height: 100%;
+  }
+
+  .map-sidebar {
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .sidebar-header p {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .sidebar-content,
+  .sidebar-events {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+
+  .sidebar-hint {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  .region-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .region-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    text-align: left;
+    width: 100%;
+    font-size: 0.9rem;
+    color: var(--text);
+  }
+
+  .region-item:hover {
+    border-color: var(--accent);
+  }
+
+  .region-count {
+    background: var(--category-rooted-bg);
+    color: var(--category-rooted);
+    padding: 0.125rem 0.5rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .cities-header,
+  .events-header,
+  .rural-header {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+    padding: 0 0.25rem;
+  }
+
+  .rural-header {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .cities-list {
+    margin-bottom: 1.5rem;
+  }
+
+  .city-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-size: 0.875rem;
+    color: var(--text);
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .city-item:hover {
+    background: var(--bg);
+  }
+
+  .city-item.selected {
+    background: var(--category-rooted-bg);
+  }
+
+  .city-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  .city-item-count {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+
+  .event-item {
+    display: block;
+    padding: 0.875rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    transition: border-color 0.2s;
+  }
+
+  .event-item:hover {
+    border-color: var(--accent);
+  }
+
+  .event-item.rural {
+    border-left: 2px solid var(--text-muted);
+  }
+
+  .event-item-name {
+    font-weight: 500;
+    margin-bottom: 0.375rem;
+    line-height: 1.3;
+  }
+
+  .event-item-meta {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .event-item-date {
+    color: var(--accent);
+  }
+
+  .event-item-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .back-button {
+    padding: 1rem;
+    background: none;
+    border: none;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.2s;
+  }
+
+  .back-button:hover {
+    color: var(--accent);
+  }
+
+  /* Map markers */
+  :global(.region-label) {
+    pointer-events: none;
+  }
+
+  :global(.label-count) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  :global(.city-marker) {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    background: var(--bg-card);
+    padding: 0.375rem 0.625rem;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    white-space: nowrap;
+  }
+
+  :global(.city-marker:hover),
+  :global(.city-marker.selected) {
+    border-color: var(--accent);
+    background: var(--category-rooted-bg);
+  }
+
+  :global(.city-name) {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  :global(.city-count) {
+    font-size: 0.7rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .map-container {
+      grid-template-columns: 1fr;
+      grid-template-rows: 50vh 1fr;
+    }
+
+    .map-sidebar {
+      border-left: none;
+      border-top: 1px solid var(--border);
+    }
+  }
+</style>
