@@ -1,12 +1,10 @@
 /**
  * Data Client
  *
- * Fetches event data from local JSON (seed data) or Google Sheets.
+ * Fetches event data from embedded seed data or Google Sheets.
  * Uses local data by default for instant deployment.
  * Set USE_GOOGLE_SHEETS=true to fetch from Sheets instead.
  */
-
-import seedEvents from '../data/events.json';
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID || '1LjfPpLzpuQEkeb34MYrrTFad_PM1wjiS4vPS67sNML0';
 const API_KEY = process.env.GOOGLE_API_KEY;
@@ -40,6 +38,328 @@ export interface SheetEvent {
   description: string | null;
   image_url: string | null;
 }
+
+// ============================================================================
+// SEED DATA (EMBEDDED)
+// ============================================================================
+
+const SEED_EVENTS = [
+  {
+    id: "gnaoua-2025",
+    name: "Festival Gnaoua et Musiques du Monde",
+    event_type: "festival",
+    start_date: "2025-06-26",
+    end_date: "2025-06-29",
+    city: "Essaouira",
+    region: "Marrakech-Safi",
+    venue: "Place Moulay Hassan",
+    genres: ["Gnawa", "World Music", "Jazz"],
+    artists: ["Maalem Hamid El Kasri", "Hindi Zahra", "Oum"],
+    organizer: "Association Yerma Gnaoua",
+    official_website: "https://festival-gnaoua.net",
+    ticket_url: "https://festival-gnaoua.net/billetterie",
+    status: "confirmed",
+    is_verified: true,
+    is_pinned: true,
+    cultural_significance: 10,
+    description: "Annual celebration of Gnawa music and culture, bringing together Gnawa masters (Maalems) and international artists in the coastal town of Essaouira.",
+    image_url: null
+  },
+  {
+    id: "mawazine-2025",
+    name: "Mawazine Rhythms of the World",
+    event_type: "festival",
+    start_date: "2025-06-20",
+    end_date: "2025-06-28",
+    city: "Rabat",
+    region: "Rabat-Salé-Kénitra",
+    venue: "OLM Souissi",
+    genres: ["Pop", "World Music", "Hip Hop", "R&B"],
+    artists: [],
+    organizer: "Maroc Cultures",
+    official_website: "https://mawazine.ma",
+    ticket_url: null,
+    status: "announced",
+    is_verified: true,
+    is_pinned: true,
+    cultural_significance: 9,
+    description: "One of the world's largest music festivals, attracting millions of attendees and featuring major international headliners alongside Moroccan artists.",
+    image_url: null
+  },
+  {
+    id: "timitar-2025",
+    name: "Festival Timitar",
+    event_type: "festival",
+    start_date: "2025-07-10",
+    end_date: "2025-07-13",
+    city: "Agadir",
+    region: "Souss-Massa",
+    venue: null,
+    genres: ["Amazigh", "World Music", "Folk"],
+    artists: [],
+    organizer: "Association Timitar",
+    official_website: "https://festivaltimitar.ma",
+    ticket_url: null,
+    status: "announced",
+    is_verified: true,
+    is_pinned: false,
+    cultural_significance: 8,
+    description: "Festival celebrating Amazigh (Berber) music and culture, showcasing traditional and contemporary artists from Morocco and beyond.",
+    image_url: null
+  },
+  {
+    id: "jazzablanca-2025",
+    name: "Jazzablanca",
+    event_type: "festival",
+    start_date: "2025-07-03",
+    end_date: "2025-07-05",
+    city: "Casablanca",
+    region: "Casablanca-Settat",
+    venue: "Anfa Park",
+    genres: ["Jazz", "Soul", "Blues", "Electronic"],
+    artists: [],
+    organizer: "7MO",
+    official_website: "https://jazzablanca.com",
+    ticket_url: null,
+    status: "announced",
+    is_verified: true,
+    is_pinned: false,
+    cultural_significance: 7,
+    description: "Casablanca's premier jazz festival bringing international jazz, soul, and blues artists to Morocco's economic capital.",
+    image_url: null
+  },
+  {
+    id: "visa-for-music-2025",
+    name: "Visa For Music",
+    event_type: "conference",
+    start_date: "2025-11-19",
+    end_date: "2025-11-22",
+    city: "Rabat",
+    region: "Rabat-Salé-Kénitra",
+    venue: "Various venues",
+    genres: ["World Music", "African", "Electronic"],
+    artists: [],
+    organizer: "Visa For Music",
+    official_website: "https://visaformusic.com",
+    ticket_url: null,
+    status: "announced",
+    is_verified: true,
+    is_pinned: false,
+    cultural_significance: 7,
+    description: "Africa and Middle East's leading music market and showcase festival, connecting artists with industry professionals.",
+    image_url: null
+  },
+  {
+    id: "tanjazz-2025",
+    name: "Tanjazz Festival",
+    event_type: "festival",
+    start_date: "2025-09-18",
+    end_date: "2025-09-21",
+    city: "Tangier",
+    region: "Tanger-Tétouan-Al Hoceïma",
+    venue: "Palais des Institutions Italiennes",
+    genres: ["Jazz", "Blues", "Soul"],
+    artists: [],
+    organizer: "Tanjazz Association",
+    official_website: "https://tanjazz.org",
+    ticket_url: null,
+    status: "announced",
+    is_verified: true,
+    is_pinned: false,
+    cultural_significance: 6,
+    description: "Tangier's international jazz festival featuring performances in historic venues across the city.",
+    image_url: null
+  },
+  {
+    id: "fes-sacred-music-2025",
+    name: "Fes Festival of World Sacred Music",
+    event_type: "festival",
+    start_date: "2025-06-06",
+    end_date: "2025-06-14",
+    city: "Fes",
+    region: "Fès-Meknès",
+    venue: "Bab Al Makina",
+    genres: ["Sufi", "Classical", "World Music", "Sacred"],
+    artists: [],
+    organizer: "Fes Festival Foundation",
+    official_website: "https://fesfestival.com",
+    ticket_url: null,
+    status: "announced",
+    is_verified: true,
+    is_pinned: true,
+    cultural_significance: 9,
+    description: "Celebrating sacred music traditions from around the world in the spiritual heart of Morocco's oldest imperial city.",
+    image_url: null
+  },
+  {
+    id: "oasis-festival-2025",
+    name: "Oasis Festival",
+    event_type: "festival",
+    start_date: "2025-09-12",
+    end_date: "2025-09-14",
+    city: "Marrakech",
+    region: "Marrakech-Safi",
+    venue: "The Source",
+    genres: ["Electronic", "House", "Techno"],
+    artists: [],
+    organizer: "Oasis Festival",
+    official_website: "https://theoasisfest.com",
+    ticket_url: null,
+    status: "announced",
+    is_verified: true,
+    is_pinned: false,
+    cultural_significance: 6,
+    description: "Boutique electronic music festival set in the foothills of the Atlas Mountains outside Marrakech.",
+    image_url: null
+  },
+  {
+    id: "atlas-electronic-2025",
+    name: "Atlas Electronic",
+    event_type: "festival",
+    start_date: "2025-03-28",
+    end_date: "2025-03-30",
+    city: "Marrakech",
+    region: "Marrakech-Safi",
+    venue: "Fellah Hotel",
+    genres: ["Electronic", "Ambient", "Experimental"],
+    artists: [],
+    organizer: "Atlas Electronic",
+    official_website: "https://atlaselectronic.ma",
+    ticket_url: null,
+    status: "confirmed",
+    is_verified: true,
+    is_pinned: false,
+    cultural_significance: 5,
+    description: "Electronic music gathering focused on experimental and ambient sounds in the Moroccan countryside.",
+    image_url: null
+  },
+  {
+    id: "l-boulevard-2025",
+    name: "L'Boulevard Festival",
+    event_type: "festival",
+    start_date: "2025-09-26",
+    end_date: "2025-09-28",
+    city: "Casablanca",
+    region: "Casablanca-Settat",
+    venue: "Ancienne Médina",
+    genres: ["Hip Hop", "Rock", "Electronic", "Urban"],
+    artists: [],
+    organizer: "EAC L'Boulvard",
+    official_website: "https://boulevard.ma",
+    ticket_url: null,
+    status: "announced",
+    is_verified: true,
+    is_pinned: false,
+    cultural_significance: 7,
+    description: "Casablanca's urban music festival and platform for emerging Moroccan artists in hip hop, rock, and electronic music.",
+    image_url: null
+  },
+  {
+    id: "jardin-des-arts-2025",
+    name: "Festival du Jardin des Arts",
+    event_type: "festival",
+    start_date: "2025-05-15",
+    end_date: "2025-05-18",
+    city: "Tétouan",
+    region: "Tanger-Tétouan-Al Hoceïma",
+    venue: "Jardin Moulay Rachid",
+    genres: ["Andalusian", "Classical", "Folk"],
+    artists: [],
+    organizer: null,
+    official_website: null,
+    ticket_url: null,
+    status: "announced",
+    is_verified: false,
+    is_pinned: false,
+    cultural_significance: 5,
+    description: "Arts festival in Tétouan's gardens featuring Andalusian music traditions.",
+    image_url: null
+  },
+  {
+    id: "alegria-festival-2025",
+    name: "Alegria Festival",
+    event_type: "festival",
+    start_date: "2025-04-25",
+    end_date: "2025-04-27",
+    city: "El Jadida",
+    region: "Casablanca-Settat",
+    venue: "Mazagan Beach Resort",
+    genres: ["Electronic", "House", "Disco"],
+    artists: [],
+    organizer: "Alegria Events",
+    official_website: "https://alegriafestival.com",
+    ticket_url: null,
+    status: "announced",
+    is_verified: false,
+    is_pinned: false,
+    cultural_significance: 4,
+    description: "Beach electronic music festival on Morocco's Atlantic coast.",
+    image_url: null
+  },
+  {
+    id: "merzouga-music-2025",
+    name: "Merzouga Music Festival",
+    event_type: "festival",
+    start_date: "2025-10-17",
+    end_date: "2025-10-19",
+    city: "Merzouga",
+    region: "Drâa-Tafilalet",
+    venue: "Erg Chebbi Dunes",
+    genres: ["World Music", "Gnawa", "Desert Blues"],
+    artists: [],
+    organizer: null,
+    official_website: null,
+    ticket_url: null,
+    status: "announced",
+    is_verified: false,
+    is_pinned: false,
+    cultural_significance: 5,
+    description: "Music performances in the Sahara desert dunes near Merzouga.",
+    image_url: null
+  },
+  {
+    id: "chefchaouen-jazz-2025",
+    name: "Jazz au Chefchaouen",
+    event_type: "festival",
+    start_date: "2025-08-07",
+    end_date: "2025-08-09",
+    city: "Chefchaouen",
+    region: "Tanger-Tétouan-Al Hoceïma",
+    venue: "Place Outa El Hammam",
+    genres: ["Jazz", "Fusion"],
+    artists: [],
+    organizer: null,
+    official_website: null,
+    ticket_url: null,
+    status: "announced",
+    is_verified: false,
+    is_pinned: false,
+    cultural_significance: 4,
+    description: "Jazz festival in the blue-painted mountain town of Chefchaouen.",
+    image_url: null
+  },
+  {
+    id: "awaln-art-2025",
+    name: "Awaln'Art Festival",
+    event_type: "festival",
+    start_date: "2025-06-12",
+    end_date: "2025-06-15",
+    city: "Marrakech",
+    region: "Marrakech-Safi",
+    venue: "Various venues",
+    genres: ["World Music", "Gnawa", "Electronic"],
+    artists: [],
+    organizer: "Awaln'Art Association",
+    official_website: null,
+    ticket_url: null,
+    status: "announced",
+    is_verified: false,
+    is_pinned: false,
+    cultural_significance: 5,
+    description: "Contemporary arts and music festival in Marrakech's medina and gardens.",
+    image_url: null
+  }
+];
 
 // ============================================================================
 // HELPERS
@@ -78,11 +398,11 @@ function parseNum(val: string | number | null | undefined, defaultVal = 0): numb
 // ============================================================================
 
 function loadSeedEvents(): SheetEvent[] {
-  return (seedEvents as any[]).map(event => ({
+  return SEED_EVENTS.map(event => ({
     id: event.id,
     name: event.name,
     slug: slugify(event.name),
-    event_type: event.event_type || 'concert',
+    event_type: event.event_type as SheetEvent['event_type'],
     start_date: event.start_date,
     end_date: event.end_date || null,
     city: event.city,
@@ -90,15 +410,15 @@ function loadSeedEvents(): SheetEvent[] {
     region: event.region,
     region_slug: slugify(event.region),
     venue: event.venue || null,
-    genres: Array.isArray(event.genres) ? event.genres : parseList(event.genres),
-    artists: Array.isArray(event.artists) ? event.artists : parseList(event.artists),
+    genres: event.genres,
+    artists: event.artists,
     organizer: event.organizer || null,
     official_website: event.official_website || null,
     ticket_url: event.ticket_url || null,
-    status: event.status || 'announced',
-    is_verified: parseBool(event.is_verified),
-    is_pinned: parseBool(event.is_pinned),
-    cultural_significance: parseNum(event.cultural_significance, 0),
+    status: event.status as SheetEvent['status'],
+    is_verified: event.is_verified,
+    is_pinned: event.is_pinned,
+    cultural_significance: event.cultural_significance,
     description: event.description || null,
     image_url: event.image_url || null,
   }));
@@ -199,10 +519,6 @@ async function fetchEventsFromSheets(): Promise<SheetEvent[]> {
 // MAIN FETCH FUNCTION
 // ============================================================================
 
-/**
- * Fetch events from local seed data or Google Sheets.
- * Uses local data by default. Set USE_GOOGLE_SHEETS=true for Sheets.
- */
 export async function fetchEvents(): Promise<SheetEvent[]> {
   if (USE_SHEETS) {
     try {
