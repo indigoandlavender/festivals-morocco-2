@@ -1,0 +1,392 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getEvents, getEventBySlug, formatDateRange, formatDate } from '../../lib/api';
+
+export function getStaticPaths() {
+  const events = getEvents();
+  return events.map(event => ({
+    params: { slug: event.slug },
+    props: { event }
+  }));
+}
+
+const { event } = Astro.props;
+
+if (!event) {
+  return Astro.redirect('/events');
+}
+
+const schemaOrg = {
+  "@context": "https://schema.org",
+  "@type": "MusicEvent",
+  "name": event.name,
+  "startDate": event.start_date,
+  "endDate": event.end_date || event.start_date,
+  "location": {
+    "@type": "Place",
+    "name": event.venue || event.city,
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": event.city,
+      "addressRegion": event.region,
+      "addressCountry": "MA"
+    }
+  },
+  "description": event.description,
+  "url": event.official_website,
+  "eventStatus": event.status === 'confirmed' ? "https://schema.org/EventScheduled" : "https://schema.org/EventPostponed"
+};
+---
+
+<Base title={`${event.name} - Festivals in Morocco`} description={event.description || `${event.name} in ${event.city}, Morocco`}>
+  <script type="application/ld+json" set:html={JSON.stringify(schemaOrg)} />
+
+  <nav class="breadcrumb">
+    <a href="/">Home</a>
+    <span>/</span>
+    <a href="/events">Events</a>
+    <span>/</span>
+    <span>{event.name}</span>
+  </nav>
+
+  <article class="event-detail">
+    <header>
+      <div class="event-meta">
+        <span class="event-type">{event.event_type}</span>
+        {event.is_verified && <span class="verified-badge">Verified</span>}
+        <span class="event-status" data-status={event.status}>{event.status}</span>
+      </div>
+      <h1>{event.name}</h1>
+      <p class="event-date-large">{formatDateRange(event.start_date, event.end_date)}</p>
+    </header>
+
+    <div class="event-body">
+      <div class="event-main">
+        {event.description && (
+          <section class="description">
+            <h2>About</h2>
+            <p>{event.description}</p>
+          </section>
+        )}
+
+        {event.artists.length > 0 && (
+          <section class="artists">
+            <h2>Artists</h2>
+            <ul class="artist-list">
+              {event.artists.map(artist => (
+                <li>{artist}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <section class="genres-section">
+          <h2>Genres</h2>
+          <div class="genre-list">
+            {event.genres.map(genre => (
+              <a href={`/genres/${genre.toLowerCase().replace(/\s+/g, '-')}`} class="genre-tag-large">
+                {genre}
+              </a>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <aside class="event-sidebar">
+        <div class="info-card">
+          <h3>Event Details</h3>
+
+          <div class="info-row">
+            <span class="info-label">Date</span>
+            <span class="info-value">{formatDateRange(event.start_date, event.end_date)}</span>
+          </div>
+
+          <div class="info-row">
+            <span class="info-label">Location</span>
+            <span class="info-value">
+              <a href={`/cities/${event.city_slug}`}>{event.city}</a>, {event.region}
+            </span>
+          </div>
+
+          {event.venue && (
+            <div class="info-row">
+              <span class="info-label">Venue</span>
+              <span class="info-value">{event.venue}</span>
+            </div>
+          )}
+
+          {event.organizer && (
+            <div class="info-row">
+              <span class="info-label">Organizer</span>
+              <span class="info-value">{event.organizer}</span>
+            </div>
+          )}
+
+          <div class="info-row">
+            <span class="info-label">Type</span>
+            <span class="info-value capitalize">{event.event_type}</span>
+          </div>
+
+          <div class="info-row">
+            <span class="info-label">Status</span>
+            <span class="info-value capitalize">{event.status}</span>
+          </div>
+        </div>
+
+        {(event.official_website || event.ticket_url) && (
+          <div class="links-card">
+            <h3>Links</h3>
+            {event.official_website && (
+              <a href={event.official_website} target="_blank" rel="noopener noreferrer" class="link-btn">
+                Official Website
+              </a>
+            )}
+            {event.ticket_url && (
+              <a href={event.ticket_url} target="_blank" rel="noopener noreferrer" class="link-btn primary">
+                Get Tickets
+              </a>
+            )}
+          </div>
+        )}
+      </aside>
+    </div>
+  </article>
+
+  <nav class="back-nav">
+    <a href="/events">&larr; Back to all events</a>
+  </nav>
+</Base>
+
+<style>
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+  }
+
+  .breadcrumb a:hover {
+    color: var(--accent);
+  }
+
+  .event-detail header {
+    margin-bottom: 2rem;
+  }
+
+  .event-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .event-type {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    text-transform: capitalize;
+  }
+
+  .verified-badge {
+    font-size: 0.75rem;
+    background: var(--accent);
+    color: #000;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+  }
+
+  .event-status {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    text-transform: capitalize;
+  }
+
+  .event-status[data-status="confirmed"] {
+    background: rgba(34, 197, 94, 0.2);
+    color: var(--accent);
+  }
+
+  .event-status[data-status="announced"] {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+  }
+
+  .event-detail h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+  }
+
+  .event-date-large {
+    font-size: 1.25rem;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .event-body {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 3rem;
+  }
+
+  .event-main section {
+    margin-bottom: 2.5rem;
+  }
+
+  .event-main h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .description p {
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  .artist-list {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .artist-list li {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+  }
+
+  .genre-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .genre-tag-large {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 100px;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+  }
+
+  .genre-tag-large:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .event-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .info-card,
+  .links-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .info-card h3,
+  .links-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .info-row:last-child {
+    border-bottom: none;
+  }
+
+  .info-label {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .info-value {
+    font-size: 0.9rem;
+    text-align: right;
+  }
+
+  .info-value a {
+    color: var(--accent);
+  }
+
+  .capitalize {
+    text-transform: capitalize;
+  }
+
+  .link-btn {
+    display: block;
+    text-align: center;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    transition: border-color 0.2s;
+  }
+
+  .link-btn:hover {
+    border-color: var(--accent);
+  }
+
+  .link-btn:last-child {
+    margin-bottom: 0;
+  }
+
+  .link-btn.primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .link-btn.primary:hover {
+    background: var(--accent-hover);
+  }
+
+  .back-nav {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .back-nav a {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .back-nav a:hover {
+    color: var(--accent);
+  }
+
+  @media (max-width: 900px) {
+    .event-body {
+      grid-template-columns: 1fr;
+    }
+
+    .event-detail h1 {
+      font-size: 2rem;
+    }
+  }
+</style>

@@ -1,0 +1,148 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "Discover festivals and music events in Morocco" } = Astro.props;
+const currentPath = Astro.url.pathname;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  <meta name="description" content={description}>
+  <link rel="canonical" href={`https://festivalsinmorocco.com${currentPath}`}>
+  <style is:global>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0a0a0a;
+      --bg-card: #141414;
+      --bg-hover: #1a1a1a;
+      --text: #ededed;
+      --text-muted: #888;
+      --accent: #22c55e;
+      --accent-hover: #16a34a;
+      --border: #262626;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 100;
+    }
+
+    header .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+
+    .logo {
+      font-weight: 700;
+      font-size: 1.25rem;
+      white-space: nowrap;
+    }
+
+    nav {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    nav a {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    nav a:hover, nav a.active {
+      color: var(--text);
+    }
+
+    /* Main content */
+    main {
+      padding: 2rem 0 4rem;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 0;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    footer .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    footer a {
+      color: var(--text-muted);
+    }
+
+    footer a:hover {
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="/" class="logo">Festivals in Morocco</a>
+      <nav>
+        <a href="/" class:list={[{ active: currentPath === '/' }]}>Home</a>
+        <a href="/events" class:list={[{ active: currentPath.startsWith('/events') }]}>Events</a>
+        <a href="/cities" class:list={[{ active: currentPath.startsWith('/cities') }]}>Cities</a>
+        <a href="/genres" class:list={[{ active: currentPath.startsWith('/genres') }]}>Genres</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <slot />
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>Music events and festivals in Morocco</span>
+      <a href="/api/events" target="_blank">API</a>
+    </div>
+  </footer>
+</body>
+</html>

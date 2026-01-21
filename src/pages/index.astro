@@ -1,0 +1,367 @@
+---
+import Base from '../layouts/Base.astro';
+import { getUpcomingEvents, getFeaturedEvents, getCities, getGenres, formatDateRange } from '../lib/api';
+
+const featured = getFeaturedEvents().slice(0, 3);
+const upcoming = getUpcomingEvents().slice(0, 6);
+const cities = getCities().slice(0, 8);
+const genres = getGenres().slice(0, 10);
+---
+
+<Base title="Festivals in Morocco - Music Events & Concerts">
+  <section class="hero">
+    <h1>Festivals in Morocco</h1>
+    <p class="subtitle">Discover music events, concerts, and cultural festivals across Morocco</p>
+
+    <form class="search-form" action="/events" method="GET">
+      <input type="search" name="q" placeholder="Search events, artists, cities..." autocomplete="off">
+      <button type="submit">Search</button>
+    </form>
+  </section>
+
+  <section class="featured">
+    <div class="section-header">
+      <h2>Featured Festivals</h2>
+      <a href="/events" class="view-all">View all</a>
+    </div>
+
+    <div class="featured-grid">
+      {featured.map(event => (
+        <a href={`/events/${event.slug}`} class="featured-card">
+          <div class="featured-content">
+            <span class="date">{formatDateRange(event.start_date, event.end_date)}</span>
+            <h3>{event.name}</h3>
+            <p class="location">{event.city}, {event.region}</p>
+            <div class="genres">
+              {event.genres.slice(0, 3).map(genre => (
+                <span class="genre-tag">{genre}</span>
+              ))}
+            </div>
+          </div>
+          {event.is_verified && <span class="verified-badge" title="Verified">✓</span>}
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="upcoming">
+    <div class="section-header">
+      <h2>Upcoming Events</h2>
+      <a href="/events" class="view-all">View all</a>
+    </div>
+
+    <div class="events-list">
+      {upcoming.map(event => (
+        <a href={`/events/${event.slug}`} class="event-row">
+          <div class="event-date">
+            <span class="day">{new Date(event.start_date).getDate()}</span>
+            <span class="month">{new Date(event.start_date).toLocaleDateString('en-GB', { month: 'short' })}</span>
+          </div>
+          <div class="event-info">
+            <h3>{event.name}</h3>
+            <p>{event.city} · {event.genres.slice(0, 2).join(', ')}</p>
+          </div>
+          <span class="event-type">{event.event_type}</span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <div class="two-col">
+    <section class="cities">
+      <div class="section-header">
+        <h2>Cities</h2>
+        <a href="/cities" class="view-all">View all</a>
+      </div>
+
+      <div class="tag-list">
+        {cities.map(city => (
+          <a href={`/cities/${city.slug}`} class="tag">
+            {city.name} <span class="count">{city.count}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <section class="genres-section">
+      <div class="section-header">
+        <h2>Genres</h2>
+        <a href="/genres" class="view-all">View all</a>
+      </div>
+
+      <div class="tag-list">
+        {genres.map(genre => (
+          <a href={`/genres/${genre.slug}`} class="tag">
+            {genre.name} <span class="count">{genre.count}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .hero {
+    text-align: center;
+    padding: 4rem 0;
+  }
+
+  .hero h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+  }
+
+  .search-form {
+    display: flex;
+    gap: 0.5rem;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .search-form input {
+    flex: 1;
+    padding: 0.875rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 1rem;
+  }
+
+  .search-form input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .search-form button {
+    padding: 0.875rem 1.5rem;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .search-form button:hover {
+    background: var(--accent-hover);
+  }
+
+  section {
+    margin-bottom: 3rem;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .view-all {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .view-all:hover {
+    color: var(--accent);
+  }
+
+  .featured-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .featured-card {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .featured-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .featured-card .date {
+    color: var(--accent);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .featured-card h3 {
+    font-size: 1.25rem;
+    margin: 0.5rem 0;
+  }
+
+  .featured-card .location {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .genre-tag {
+    background: var(--bg);
+    padding: 0.25rem 0.75rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .verified-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: var(--accent);
+    color: #000;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+  }
+
+  .events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .event-row {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: border-color 0.2s;
+  }
+
+  .event-row:hover {
+    border-color: var(--text-muted);
+  }
+
+  .event-date {
+    text-align: center;
+    min-width: 50px;
+  }
+
+  .event-date .day {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .event-date .month {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .event-info {
+    flex: 1;
+  }
+
+  .event-info h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+  }
+
+  .event-info p {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .event-type {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    text-transform: capitalize;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+  }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+  }
+
+  .tag:hover {
+    border-color: var(--accent);
+  }
+
+  .tag .count {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+
+  @media (max-width: 640px) {
+    .hero h1 {
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+    }
+
+    .search-form {
+      flex-direction: column;
+    }
+
+    .event-row {
+      flex-wrap: wrap;
+    }
+
+    .event-type {
+      margin-left: auto;
+    }
+  }
+</style>

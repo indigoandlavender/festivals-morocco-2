@@ -1,0 +1,395 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getEvents, getCities, getGenres, formatDateRange } from '../../lib/api';
+
+const url = Astro.url;
+const cityFilter = url.searchParams.get('city');
+const genreFilter = url.searchParams.get('genre');
+const typeFilter = url.searchParams.get('type');
+const query = url.searchParams.get('q');
+
+let events = getEvents();
+const cities = getCities();
+const genres = getGenres();
+
+// Apply filters
+if (cityFilter) {
+  events = events.filter(e => e.city_slug === cityFilter);
+}
+
+if (genreFilter) {
+  events = events.filter(e =>
+    e.genres.some(g => g.toLowerCase().replace(/\s+/g, '-') === genreFilter)
+  );
+}
+
+if (typeFilter) {
+  events = events.filter(e => e.event_type === typeFilter);
+}
+
+if (query) {
+  const q = query.toLowerCase();
+  events = events.filter(e =>
+    e.name.toLowerCase().includes(q) ||
+    e.city.toLowerCase().includes(q) ||
+    e.genres.some(g => g.toLowerCase().includes(q)) ||
+    e.artists.some(a => a.toLowerCase().includes(q))
+  );
+}
+
+// Sort by date
+events.sort((a, b) => {
+  if (a.is_pinned && !b.is_pinned) return -1;
+  if (!a.is_pinned && b.is_pinned) return 1;
+  return a.start_date.localeCompare(b.start_date);
+});
+
+const eventTypes = ['festival', 'concert', 'showcase', 'ritual', 'conference'];
+---
+
+<Base title="Events - Festivals in Morocco">
+  <div class="page-header">
+    <h1>Events</h1>
+    <p class="subtitle">{events.length} music events and festivals in Morocco</p>
+  </div>
+
+  <div class="filters">
+    <form method="GET" action="/events" class="search-inline">
+      <input
+        type="search"
+        name="q"
+        placeholder="Search events..."
+        value={query || ''}
+        autocomplete="off"
+      >
+      <button type="submit">Search</button>
+    </form>
+
+    <div class="filter-row">
+      <select name="city" id="city-filter">
+        <option value="">All Cities</option>
+        {cities.map(city => (
+          <option value={city.slug} selected={cityFilter === city.slug}>
+            {city.name} ({city.count})
+          </option>
+        ))}
+      </select>
+
+      <select name="genre" id="genre-filter">
+        <option value="">All Genres</option>
+        {genres.map(genre => (
+          <option value={genre.slug} selected={genreFilter === genre.slug}>
+            {genre.name} ({genre.count})
+          </option>
+        ))}
+      </select>
+
+      <select name="type" id="type-filter">
+        <option value="">All Types</option>
+        {eventTypes.map(type => (
+          <option value={type} selected={typeFilter === type}>
+            {type.charAt(0).toUpperCase() + type.slice(1)}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {(cityFilter || genreFilter || typeFilter || query) && (
+      <a href="/events" class="clear-filters">Clear all filters</a>
+    )}
+  </div>
+
+  <div class="events-grid">
+    {events.map(event => (
+      <a href={`/events/${event.slug}`} class="event-card">
+        <div class="event-header">
+          <span class="event-date">{formatDateRange(event.start_date, event.end_date)}</span>
+          {event.is_verified && <span class="verified" title="Verified">✓</span>}
+        </div>
+        <h2>{event.name}</h2>
+        <p class="event-location">{event.city}, {event.region}</p>
+        {event.venue && <p class="event-venue">{event.venue}</p>}
+        <div class="event-genres">
+          {event.genres.slice(0, 3).map(genre => (
+            <span class="genre-tag">{genre}</span>
+          ))}
+        </div>
+        <div class="event-footer">
+          <span class="event-type">{event.event_type}</span>
+          <span class="event-status" data-status={event.status}>{event.status}</span>
+        </div>
+      </a>
+    ))}
+  </div>
+
+  {events.length === 0 && (
+    <div class="no-results">
+      <p>No events found matching your criteria.</p>
+      <a href="/events" class="btn">View all events</a>
+    </div>
+  )}
+</Base>
+
+<script>
+  const citySelect = document.getElementById('city-filter') as HTMLSelectElement;
+  const genreSelect = document.getElementById('genre-filter') as HTMLSelectElement;
+  const typeSelect = document.getElementById('type-filter') as HTMLSelectElement;
+
+  function applyFilters() {
+    const params = new URLSearchParams(window.location.search);
+
+    if (citySelect.value) {
+      params.set('city', citySelect.value);
+    } else {
+      params.delete('city');
+    }
+
+    if (genreSelect.value) {
+      params.set('genre', genreSelect.value);
+    } else {
+      params.delete('genre');
+    }
+
+    if (typeSelect.value) {
+      params.set('type', typeSelect.value);
+    } else {
+      params.delete('type');
+    }
+
+    const queryString = params.toString();
+    window.location.href = '/events' + (queryString ? '?' + queryString : '');
+  }
+
+  citySelect?.addEventListener('change', applyFilters);
+  genreSelect?.addEventListener('change', applyFilters);
+  typeSelect?.addEventListener('change', applyFilters);
+</script>
+
+<style>
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+  }
+
+  .filters {
+    margin-bottom: 2rem;
+  }
+
+  .search-inline {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .search-inline input {
+    flex: 1;
+    max-width: 400px;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+
+  .search-inline input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .search-inline button {
+    padding: 0.75rem 1.25rem;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-row select {
+    padding: 0.625rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    min-width: 150px;
+  }
+
+  .filter-row select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .clear-filters {
+    display: inline-block;
+    margin-top: 0.75rem;
+    color: var(--accent);
+    font-size: 0.875rem;
+  }
+
+  .events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .event-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .event-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .event-date {
+    color: var(--accent);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .verified {
+    background: var(--accent);
+    color: #000;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+  }
+
+  .event-card h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+  }
+
+  .event-location {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .event-venue {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .event-genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-bottom: 1rem;
+  }
+
+  .genre-tag {
+    background: var(--bg);
+    padding: 0.25rem 0.625rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .event-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .event-type {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: capitalize;
+  }
+
+  .event-status {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    text-transform: capitalize;
+  }
+
+  .event-status[data-status="confirmed"] {
+    background: rgba(34, 197, 94, 0.2);
+    color: var(--accent);
+  }
+
+  .event-status[data-status="announced"] {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+  }
+
+  .event-status[data-status="tentative"] {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+  }
+
+  .no-results .btn {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--accent);
+    color: #000;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+
+  @media (max-width: 640px) {
+    .page-header h1 {
+      font-size: 2rem;
+    }
+
+    .filter-row {
+      flex-direction: column;
+    }
+
+    .filter-row select {
+      width: 100%;
+    }
+
+    .events-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
