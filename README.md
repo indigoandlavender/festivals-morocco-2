@@ -2,32 +2,88 @@
 
 Vertical search engine for festivals and music events in Morocco.
 
-Entity-centric. Search-first. Built for long-term authority and machine readability.
+**Data source**: Google Sheets
+**Hosting**: Vercel
+**Search**: Built-in (Typesense optional)
 
 ---
 
-## Architecture Summary
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                                                                      │
-│   SOURCES                 CORE                    OUTPUT             │
-│   ───────                 ────                    ──────             │
-│                                                                      │
-│   Eventbrite ─┐                                                      │
-│   Songkick ───┼──► Ingestion ──► PostgreSQL ──► Typesense           │
-│   Manual ─────┤         │              │              │              │
-│   Scrapes ────┘         │              │              │              │
-│                         ▼              │              ▼              │
-│                   Deduplication        │         REST API            │
-│                         │              │              │              │
-│                         ▼              │              ▼              │
-│                   Confidence           │         Astro SSG           │
-│                   Scoring              │              │              │
-│                                        │              ▼              │
-│                                        └────────► CDN (Cloudflare)   │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────┐
+│  Google Sheet   │  ◄── You edit here
+│  (data source)  │
+└────────┬────────┘
+         │
+         │ fetch on request
+         ▼
+┌─────────────────┐
+│  Vercel API     │
+│  /api/*         │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Static Pages   │  ◄── Astro SSG
+│  (Vercel Edge)  │
+└─────────────────┘
+```
+
+No database. No complex infrastructure. Edit the sheet, see changes on site.
+
+---
+
+## Google Sheet
+
+**Sheet ID**: `1LjfPpLzpuQEkeb34MYrrTFad_PM1wjiS4vPS67sNML0`
+
+### Events Sheet (Required)
+
+| Column | Field | Example |
+|--------|-------|---------|
+| A | id | `gnaoua-2025` |
+| B | name | `Festival Gnaoua et Musiques du Monde` |
+| C | event_type | `festival` |
+| D | start_date | `2025-06-26` |
+| E | end_date | `2025-06-29` |
+| F | city | `Essaouira` |
+| G | region | `Marrakech-Safi` |
+| H | venue | `Place Moulay Hassan` |
+| I | genres | `Gnawa, World Music` |
+| J | artists | `Maalem Hamid El Kasri, Hindi Zahra` |
+| K | organizer | `Association Yerma Gnaoua` |
+| L | official_website | `https://festival-gnaoua.net` |
+| M | ticket_url | `https://...` |
+| N | status | `confirmed` |
+| O | is_verified | `TRUE` |
+| P | is_pinned | `TRUE` |
+| Q | cultural_significance | `9` |
+| R | description | `Annual celebration...` |
+| S | image_url | `https://...` |
+
+See `docs/05-sheet-structure.md` for full documentation.
+
+---
+
+## API Routes
+
+```
+GET /api/events              List events
+GET /api/events?slug=xxx     Single event
+GET /api/events?city=xxx     Events in city
+GET /api/events?genre=xxx    Events by genre
+GET /api/events?upcoming=true Upcoming only
+
+GET /api/festivals           Festivals only
+
+GET /api/search?q=xxx        Text search
+GET /api/search?q=gnawa&city=essaouira
+
+GET /api/cities              List cities with counts
+GET /api/cities?slug=xxx     City detail with events
+
+GET /api/calendar/2025/06    Events in June 2025
 ```
 
 ---
@@ -36,208 +92,98 @@ Entity-centric. Search-first. Built for long-term authority and machine readabil
 
 ```
 morocco-events-search/
-├── docs/
-│   ├── 01-architecture.md      # System architecture
-│   ├── 02-ingestion-pipeline.md # Data ingestion & deduplication
-│   ├── 03-url-page-strategy.md  # SEO & page routing
-│   └── 04-editorial-layer.md    # Admin controls
-├── schema/
-│   ├── database.sql            # PostgreSQL schema
-│   └── typesense-schema.json   # Search index schema
+├── api/                      # Vercel serverless functions
+│   ├── events.ts
+│   ├── festivals.ts
+│   ├── search.ts
+│   ├── cities.ts
+│   └── calendar/[year]/[month].ts
 ├── src/
-│   ├── api/
-│   │   └── routes.ts           # API endpoints
-│   ├── search/
-│   │   └── indexer.ts          # Typesense sync
-│   └── types.ts                # TypeScript definitions
-├── examples/
-│   ├── event-response.json     # Sample API response
-│   └── EventPage.astro         # Sample page component
-└── README.md
+│   ├── sheets/
+│   │   └── client.ts         # Google Sheets fetcher
+│   └── types.ts
+├── docs/
+│   ├── 01-architecture.md
+│   ├── 02-ingestion-pipeline.md
+│   ├── 03-url-page-strategy.md
+│   ├── 04-editorial-layer.md
+│   └── 05-sheet-structure.md
+├── schema/                   # Reference (if using Typesense)
+│   ├── database.sql
+│   └── typesense-schema.json
+└── examples/
+    ├── event-response.json
+    └── EventPage.astro
 ```
+
+---
+
+## Environment Variables
+
+Set in Vercel dashboard:
+
+```
+GOOGLE_SHEET_ID=1LjfPpLzpuQEkeb34MYrrTFad_PM1wjiS4vPS67sNML0
+GOOGLE_API_KEY=xxx            # Only for private sheets
+```
+
+For public sheets, no API key needed. Make sheet viewable by "Anyone with the link".
+
+---
+
+## Local Development
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Run locally
+vercel dev
+```
+
+API available at `http://localhost:3000/api/*`
+
+---
+
+## Deploy
+
+```bash
+vercel --prod
+```
+
+Or connect GitHub repo to Vercel for automatic deploys.
+
+---
+
+## Updating Data
+
+1. Edit the Google Sheet
+2. Changes appear on next API request (cached 5 min)
+3. For instant updates: redeploy or clear cache
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Justification |
-|-------|------------|---------------|
-| Database | PostgreSQL 16 | ACID, JSON support, 10+ year stability |
-| Search | Typesense | Low-ops, typo-tolerant, strict schema |
-| Backend | Node.js + Fastify | Fast, typed, minimal deps |
-| Frontend | Astro | Static-first, partial hydration |
-| Hosting | Hetzner VPS | Cost-effective (~€13/mo total) |
-| CDN | Cloudflare | Free tier, edge caching |
+| Layer | Choice | Why |
+|-------|--------|-----|
+| Data | Google Sheets | Visual editing, version history, free |
+| API | Vercel Functions | Zero config, auto-scaling |
+| Frontend | Astro (optional) | Static pages, fast |
+| Search | Built-in / Typesense | Works without external deps |
+
+**Cost**: $0 (Vercel free tier + Google Sheets)
 
 ---
 
-## Core Entities
+## What This Is
 
-| Entity | Purpose |
-|--------|---------|
-| Event | Core entity - concerts, festivals, showcases |
-| City | Location within regions |
-| Region | 12 administrative regions of Morocco |
-| Venue | Physical locations |
-| Artist | Performers |
-| Genre | Categorization (Gnawa, Chaabi, Jazz, etc.) |
-| Organizer | Event producers |
-| Source | Data provenance |
-
----
-
-## API Routes
-
-```
-GET /api/search              # Full-text search with facets
-GET /api/events              # List upcoming events
-GET /api/events/:slug        # Event detail
-GET /api/festivals           # List festivals only
-GET /api/cities              # List cities with event counts
-GET /api/cities/:slug        # City detail with events
-GET /api/regions             # List regions
-GET /api/genres              # List genres with event counts
-GET /api/calendar/:year/:mo  # Events by month
-GET /api/artists/:slug       # Artist detail with events
-GET /api/health              # Health check
-```
-
----
-
-## Page Routes
-
-```
-/                            # Homepage (search entry)
-/events                      # Event listing
-/events/{slug}               # Event detail
-/festivals/{slug}            # Festival detail
-/cities/{slug}               # Events in city
-/regions/{slug}              # Events in region
-/genres/{slug}               # Events by genre
-/calendar/{year}/{month}     # Monthly view
-/artists/{slug}              # Artist events
-```
-
----
-
-## Data Model (Key Tables)
-
-```sql
-events
-├── id, name, slug
-├── event_type (festival|concert|showcase|ritual|conference)
-├── start_date, end_date
-├── city_id → cities
-├── region_id → regions
-├── venue_id → venues (nullable)
-├── organizer_id → organizers (nullable)
-├── status (announced|confirmed|cancelled|archived)
-├── confidence_score (0.00-1.00)
-├── is_verified, is_pinned, cultural_significance
-└── last_verified_at, created_at, updated_at
-
-event_artists (N:M)
-event_genres (N:M)
-event_sources (N:M, provenance)
-event_ticket_urls (1:N)
-```
-
----
-
-## Confidence Scoring
-
-```
-confidence = (
-    0.35 × source_reliability +
-    0.25 × data_completeness +
-    0.20 × source_agreement +
-    0.10 × recency +
-    0.10 × historical_accuracy
-)
-```
-
----
-
-## Editorial Controls
-
-- **Verify**: Mark event as editorially confirmed
-- **Pin**: Promote to top of listings
-- **Set significance**: 0-10 cultural importance score
-- **Update status**: Manually set announced/confirmed/cancelled
-- **Merge**: Combine duplicate events
-- **Archive**: Remove from active listings
-
-No comments. No ratings. No social features.
-
----
-
-## Schema.org Markup
-
-Every event page includes structured data:
-
-```json
-{
-  "@type": "Festival",
-  "name": "...",
-  "startDate": "2025-06-26",
-  "location": { "@type": "Place", ... },
-  "performer": [...],
-  "offers": { "@type": "Offer", ... }
-}
-```
-
----
-
-## Deduplication Strategy
-
-1. **Fingerprint matching**: SHA256 of normalized (name + date + city)
-2. **Fuzzy name matching**: Jaro-Winkler similarity ≥ 0.85
-3. **Date-location matching**: Same city + overlapping dates
-4. **Manual review**: Confidence < 0.70 flagged for review
-
----
+- A search engine for Morocco's music events
+- Structured data, machine-readable
+- Every page answers a search query
 
 ## What This Is Not
 
 - Not a blog
-- Not a tourism calendar
-- Not a static list
 - Not a social platform
-- Not a review site
-
----
-
-## Principles
-
-1. Search-first, not UI-first
-2. Structured data over prose
-3. Every page answers a query
-4. Editorial authority over volume
-5. Crawlable, indexable, boring in a good way
-
----
-
-## Infrastructure Estimate
-
-```
-Hetzner CX31 (4 vCPU, 8GB): €8.50/mo
-Hetzner Storage Box (100GB): €3.50/mo
-Cloudflare: €0
-Domain: ~€1/mo
-
-Total: ~€13/month
-```
-
-Supports ~100k events, ~1M searches/month.
-
----
-
-## Next Steps
-
-1. Set up PostgreSQL with schema
-2. Deploy Typesense
-3. Build ingestion adapters (Eventbrite first)
-4. Implement API routes
-5. Generate static pages with Astro
-6. Configure Cloudflare CDN
-7. Seed with known festivals (Gnaoua, Mawazine, Timitar, etc.)
+- Not a tourism calendar
