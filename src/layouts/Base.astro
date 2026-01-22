@@ -1,4 +1,6 @@
 ---
+import { getLegalPages } from '../lib/sheets';
+
 interface Props {
   title: string;
   description?: string;
@@ -6,6 +8,19 @@ interface Props {
 
 const { title, description = "Discover festivals and music events in Morocco" } = Astro.props;
 const currentPath = Astro.url.pathname;
+
+// Fetch legal pages from Nexus at build time
+let legalPages = [];
+try {
+  legalPages = await getLegalPages();
+} catch (e) {
+  // Fallback if fetch fails
+  legalPages = [
+    { label: "Terms", href: "/terms" },
+    { label: "Privacy", href: "/privacy" },
+    { label: "Disclaimer", href: "/disclaimer" }
+  ];
+}
 ---
 
 <!DOCTYPE html>
@@ -235,9 +250,9 @@ const currentPath = Astro.url.pathname;
     </div>
     <div class="footer-level-2">
       <div class="container">
-        <a href="/terms">Terms</a>
-        <a href="/privacy">Privacy</a>
-        <a href="/disclaimer">Disclaimer</a>
+        {legalPages.map(page => (
+          <a href={page.href}>{page.label}</a>
+        ))}
       </div>
     </div>
     <div class="footer-level-3">

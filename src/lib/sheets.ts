@@ -63,16 +63,18 @@ export async function getLegalPages(): Promise<LegalPage[]> {
   try {
     const legalPages = await getNexusData("Nexus_Legal_Pages");
 
-    const siteLegalPages = legalPages.filter((p: any) =>
-      !p.brand_id || p.brand_id === SITE_ID || p.brand_id === "all"
-    );
+    // Get unique pages (sheet has multiple rows per page for sections)
+    const uniquePages = new Map<string, string>();
+    for (const p of legalPages) {
+      if (p.page_id && p.page_title && !uniquePages.has(p.page_id)) {
+        uniquePages.set(p.page_id, p.page_title);
+      }
+    }
 
-    return siteLegalPages
-      .filter((p: any) => p.page_slug && p.page_title)
-      .map((p: any) => ({
-        label: p.page_title,
-        href: `/${p.page_slug}`,
-      }));
+    return Array.from(uniquePages.entries()).map(([id, title]) => ({
+      label: title,
+      href: `/${id}`,
+    }));
   } catch (error) {
     console.error("Could not fetch legal pages from Nexus:", error);
     // Fallback legal pages
