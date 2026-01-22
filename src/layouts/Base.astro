@@ -161,10 +161,12 @@ try {
 
     /* Header */
     header {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: none;
       padding: 1.25rem 0;
-      position: sticky;
+      position: fixed;
       top: 0;
+      left: 0;
+      right: 0;
       background: transparent;
       z-index: 100;
       transition: background var(--transition-base), border-color var(--transition-base);
@@ -173,7 +175,7 @@ try {
     header.scrolled {
       background: rgba(250, 248, 245, 0.95);
       backdrop-filter: blur(12px);
-      border-bottom-color: var(--border);
+      border-bottom: 1px solid var(--border);
     }
 
     header.scrolled .logo,
@@ -199,6 +201,7 @@ try {
       letter-spacing: -0.01em;
       color: #fff;
       transition: color var(--transition-base);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
 
     nav {
@@ -207,11 +210,12 @@ try {
     }
 
     nav a {
-      color: rgba(255, 255, 255, 0.8);
+      color: rgba(255, 255, 255, 0.9);
       font-size: 0.875rem;
       letter-spacing: 0.02em;
-      transition: color var(--transition-fast);
+      transition: color var(--transition-fast), text-shadow var(--transition-fast);
       position: relative;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
 
     nav a::after {
@@ -228,6 +232,14 @@ try {
     nav a:hover, nav a.active { color: #fff; }
     nav a.active::after { width: 100%; }
 
+    header.scrolled .logo {
+      text-shadow: none;
+    }
+
+    header.scrolled nav a {
+      text-shadow: none;
+    }
+
     header.scrolled nav a::after {
       background: var(--accent);
     }
@@ -238,7 +250,7 @@ try {
     }
 
     main.with-padding {
-      padding: 3rem 0 5rem;
+      padding: 6rem 0 5rem; /* 6rem top accounts for fixed header */
     }
 
     /* ═══════════════════════════════════════════════════════════════
