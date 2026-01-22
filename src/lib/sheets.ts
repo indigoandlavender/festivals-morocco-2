@@ -58,7 +58,7 @@ export async function getNexusData(tabName: string): Promise<any[]> {
   }
 }
 
-// Get legal pages from Nexus
+// Get legal pages from Nexus - filtered for content sites
 export async function getLegalPages(): Promise<LegalPage[]> {
   try {
     const legalPages = await getNexusData("Nexus_Legal_Pages");
@@ -71,16 +71,94 @@ export async function getLegalPages(): Promise<LegalPage[]> {
       }
     }
 
-    return Array.from(uniquePages.entries()).map(([id, title]) => ({
-      label: title,
-      href: `/${id}`,
-    }));
+    // Content sites need these specific legal pages in this order
+    const contentLegalPageIds = ['privacy', 'terms', 'disclaimer', 'intellectual-property'];
+    
+    const result: LegalPage[] = [];
+    for (const pageId of contentLegalPageIds) {
+      const pageTitle = uniquePages.get(pageId);
+      if (pageTitle) {
+        result.push({
+          label: pageTitle,
+          href: `/${pageId}`,
+        });
+      }
+    }
+
+    console.log("[Festivals] Legal pages from Nexus:", result.map(p => p.label));
+    return result.length > 0 ? result : getFallbackLegalPages();
   } catch (error) {
     console.error("Could not fetch legal pages from Nexus:", error);
-    // Fallback legal pages
-    return [
-      { label: "Privacy Policy", href: "/privacy" },
-      { label: "Terms of Service", href: "/terms" },
-    ];
+    return getFallbackLegalPages();
+  }
+}
+
+function getFallbackLegalPages(): LegalPage[] {
+  return [
+    { label: "Privacy Policy", href: "/privacy" },
+    { label: "Terms of Service", href: "/terms" },
+    { label: "Disclaimer", href: "/disclaimer" },
+    { label: "Intellectual Property", href: "/intellectual-property" },
+  ];
+}
+
+export interface LegalPageContent {
+  page_id: string;
+  page_title: string;
+  sections: {
+    section_title: string;
+    section_content: string;
+  }[];
+}
+
+// Get full content for a specific legal page
+export async function getLegalPageContent(pageId: string): Promise<LegalPageContent | null> {
+  try {
+    const allPages = await getNexusData("Nexus_Legal_Pages");
+    
+    // Filter for the specific page
+    const pageSections = allPages.filter((p: any) => p.page_id === pageId);
+    
+    if (pageSections.length === 0) {
+      console.warn(`Legal page not found: ${pageId}`);
+      return null;
+    }
+    
+    // Sort by section_order and build content
+    const sorted = pageSections.sort((a: any, b: any) => 
+      parseInt(a.section_order) - parseInt(b.section_order)
+    );
+    
+    // Replace template variables for Festivals Morocco
+    const replacements: Record<string, string> = {
+      '{{site_name}}': 'Festivals in Morocco',
+      '{{site_url}}': 'https://festivalsinmorocco.com',
+      '{{legal_entity}}': 'Dancing with Lions',
+      '{{contact_email}}': 'hello@festivalsinmorocco.com',
+      '{{jurisdiction_country}}': 'Morocco',
+      '{{jurisdiction_city}}': 'Marrakech',
+      '{{address_line1}}': '35 Derb Fhal Zfriti Kennaria',
+      '{{address_line2}}': 'Marrakech 40000 Morocco',
+    };
+    
+    const replaceVariables = (text: string): string => {
+      let result = text;
+      for (const [key, value] of Object.entries(replacements)) {
+        result = result.split(key).join(value);
+      }
+      return result;
+    };
+    
+    return {
+      page_id: pageId,
+      page_title: sorted[0].page_title,
+      sections: sorted.map((s: any) => ({
+        section_title: replaceVariables(s.section_title || ''),
+        section_content: replaceVariables(s.section_content || ''),
+      })),
+    };
+  } catch (error) {
+    console.error(`Error fetching legal page ${pageId}:`, error);
+    return null;
   }
 }
