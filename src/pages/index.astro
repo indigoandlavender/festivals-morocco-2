@@ -191,69 +191,71 @@ const bestFor: Record<string, string[]> = {
   </section>
 
   <!-- TIMELINE VIEW -->
-  <section class="timeline-section section">
-    <div class="section-header">
-      <div>
-        <h2>Coming Up</h2>
-        <p class="subtitle">Browse events by month</p>
+  {months.length > 0 && (
+    <section class="timeline-section section">
+      <div class="section-header">
+        <div>
+          <h2>Coming Up</h2>
+          <p class="subtitle">Browse events by month</p>
+        </div>
+        <div class="timeline-nav">
+          <button class="timeline-arrow prev" id="timeline-prev" aria-label="Previous months">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+          <button class="timeline-arrow next" id="timeline-next" aria-label="Next months">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
       </div>
-      <div class="timeline-nav">
-        <button class="timeline-arrow prev" id="timeline-prev" aria-label="Previous months">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="m15 18-6-6 6-6"/>
-          </svg>
-        </button>
-        <button class="timeline-arrow next" id="timeline-next" aria-label="Next months">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="m9 18 6-6-6-6"/>
-          </svg>
-        </button>
-      </div>
-    </div>
 
-    <div class="timeline-container" id="timeline">
-      <div class="timeline-track">
-        {months.map(monthKey => {
-          const [year, month] = monthKey.split('-');
-          const monthDate = new Date(parseInt(year), parseInt(month) - 1);
-          const monthName = monthDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-          const events = eventsByMonth[monthKey];
+      <div class="timeline-container" id="timeline">
+        <div class="timeline-track">
+          {months.map(monthKey => {
+            const [year, month] = monthKey.split('-');
+            const monthDate = new Date(parseInt(year), parseInt(month) - 1);
+            const monthName = monthDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+            const events = eventsByMonth[monthKey];
 
-          return (
-            <div class="timeline-month">
-              <h3 class="month-label">{monthName}</h3>
-              <div class="month-events">
-                {events.slice(0, 3).map(event => {
-                  const startDate = event.timing.gregorian_start ? new Date(event.timing.gregorian_start) : null;
-                  return (
-                    <a href={`/events/${event.slug}`} class="timeline-event card">
-                      <div class="timeline-event-date">
-                        {startDate && (
-                          <>
-                            <span class="te-day">{startDate.getDate()}</span>
-                            <span class="te-dow">{startDate.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
-                          </>
-                        )}
-                      </div>
-                      <div class="timeline-event-info">
-                        <h4>{event.name}</h4>
-                        <p>{event.location.city || event.location.region}</p>
-                      </div>
+            return (
+              <div class="timeline-month">
+                <h3 class="month-label">{monthName}</h3>
+                <div class="month-events">
+                  {events.slice(0, 3).map(event => {
+                    const startDate = event.timing.gregorian_start ? new Date(event.timing.gregorian_start) : null;
+                    return (
+                      <a href={`/events/${event.slug}`} class="timeline-event card">
+                        <div class="timeline-event-date">
+                          {startDate && (
+                            <>
+                              <span class="te-day">{startDate.getDate()}</span>
+                              <span class="te-dow">{startDate.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
+                            </>
+                          )}
+                        </div>
+                        <div class="timeline-event-info">
+                          <h4>{event.name}</h4>
+                          <p>{event.location.city || event.location.region}</p>
+                        </div>
+                      </a>
+                    );
+                  })}
+                  {events.length > 3 && (
+                    <a href={`/events?month=${monthKey}`} class="more-link">
+                      +{events.length - 3} more
                     </a>
-                  );
-                })}
-                {events.length > 3 && (
-                  <a href={`/events?month=${monthKey}`} class="more-link">
-                    +{events.length - 3} more
-                  </a>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  )}
 
   <!-- TWO COLUMN: TRADITIONS + CITIES -->
   <div class="two-col section">
