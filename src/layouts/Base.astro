@@ -161,13 +161,28 @@ try {
 
     /* Header */
     header {
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       padding: 1.25rem 0;
       position: sticky;
       top: 0;
+      background: transparent;
+      z-index: 100;
+      transition: background var(--transition-base), border-color var(--transition-base);
+    }
+
+    header.scrolled {
       background: rgba(250, 248, 245, 0.95);
       backdrop-filter: blur(12px);
-      z-index: 100;
+      border-bottom-color: var(--border);
+    }
+
+    header.scrolled .logo,
+    header.scrolled nav a {
+      color: var(--text);
+    }
+
+    header.scrolled nav a:not(.active) {
+      color: var(--text-muted);
     }
 
     header .container {
@@ -182,6 +197,8 @@ try {
       font-weight: 400;
       font-size: 1.125rem;
       letter-spacing: -0.01em;
+      color: #fff;
+      transition: color var(--transition-base);
     }
 
     nav {
@@ -190,7 +207,7 @@ try {
     }
 
     nav a {
-      color: var(--text-muted);
+      color: rgba(255, 255, 255, 0.8);
       font-size: 0.875rem;
       letter-spacing: 0.02em;
       transition: color var(--transition-fast);
@@ -204,12 +221,16 @@ try {
       left: 0;
       width: 0;
       height: 1px;
-      background: var(--accent);
-      transition: width var(--transition-base);
+      background: #fff;
+      transition: width var(--transition-base), background var(--transition-base);
     }
 
-    nav a:hover, nav a.active { color: var(--text); }
+    nav a:hover, nav a.active { color: #fff; }
     nav a.active::after { width: 100%; }
+
+    header.scrolled nav a::after {
+      background: var(--accent);
+    }
 
     main {
       min-height: 60vh;
@@ -505,5 +526,33 @@ try {
       </div>
     </div>
   </footer>
+
+  <script>
+    // Header scroll effect
+    const header = document.querySelector('header');
+    const hero = document.querySelector('.hero') || document.querySelector('.event-hero');
+    
+    function updateHeader() {
+      if (!header) return;
+      
+      // If no hero, always show scrolled state (dark text)
+      if (!hero) {
+        header.classList.add('scrolled');
+        return;
+      }
+      
+      const scrollY = window.scrollY;
+      const threshold = Math.max(hero.offsetHeight - 100, 50);
+      
+      if (scrollY > threshold) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    }
+    
+    window.addEventListener('scroll', updateHeader, { passive: true });
+    updateHeader();
+  </script>
 </body>
 </html>
