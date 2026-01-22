@@ -227,7 +227,10 @@ export async function getSheetData(tabName: string): Promise<any[]> {
 // Sheet tab: Site_Settings with columns: key, value
 export async function getSiteSettings(): Promise<SiteSettings> {
   try {
+    console.log("[Festivals] Fetching Site_Settings from sheet:", SHEET_ID);
     const rows = await getSheetData("Site_Settings");
+    
+    console.log("[Festivals] Site_Settings rows returned:", rows.length);
     
     if (rows.length === 0) {
       console.log("[Festivals] No Site_Settings found, using defaults");
@@ -237,12 +240,14 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     // Convert rows to key-value object
     const settings: Record<string, string> = {};
     for (const row of rows) {
+      console.log("[Festivals] Row:", row.key, "=", row.value?.substring?.(0, 50) || row.value);
       if (row.key && row.value !== undefined) {
         settings[row.key] = row.value;
       }
     }
     
-    console.log("[Festivals] Loaded site settings:", Object.keys(settings));
+    console.log("[Festivals] Loaded site settings keys:", Object.keys(settings));
+    console.log("[Festivals] newsletter_background_image:", settings.newsletter_background_image?.substring(0, 60) || "(empty)");
     
     return {
       hero_image: settings.hero_image || DEFAULT_SETTINGS.hero_image,
