@@ -7,64 +7,174 @@ import {
   getTraditions,
   formatDateRange,
   formatLocation,
+  EventType,
   EventTypeLabels,
   TraditionCategory,
   MUSIC_TRADITIONS
 } from '../lib/api';
 
 const featured = getFeaturedEvents().slice(0, 3);
-const upcoming = getUpcomingEvents().slice(0, 6);
+const upcoming = getUpcomingEvents().slice(0, 12);
 const cities = getCities().slice(0, 8);
 const traditions = getTraditions();
 
-const rootedTraditions = traditions.filter(t => t.category === TraditionCategory.ROOTED).slice(0, 6);
+const rootedTraditions = traditions.filter(t => t.category === TraditionCategory.ROOTED).slice(0, 8);
 const hybridTraditions = traditions.filter(t => t.category === TraditionCategory.HYBRID).slice(0, 4);
+
+// Group upcoming events by month for timeline
+const eventsByMonth = upcoming.reduce((acc, event) => {
+  const start = event.timing.gregorian_start;
+  if (!start) return acc;
+  const date = new Date(start);
+  const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  if (!acc[key]) acc[key] = [];
+  acc[key].push(event);
+  return acc;
+}, {} as Record<string, typeof upcoming>);
+
+const months = Object.keys(eventsByMonth).sort().slice(0, 6);
+
+// Placeholder images (warm gradients that match brand)
+const gradients = [
+  'linear-gradient(135deg, #5A6F5E 0%, #4A5C4D 100%)',
+  'linear-gradient(135deg, #B8705B 0%, #8A5A50 100%)',
+  'linear-gradient(135deg, #7A706A 0%, #5A5A5A 100%)',
+  'linear-gradient(135deg, #6B7B8A 0%, #4A5A6A 100%)',
+];
+
+// "Why Go" snippets for featured events
+const whyGo: Record<string, string> = {
+  'festival-gnaoua-essaouira': 'Where trance meets the Atlantic. Gnawa masters share stages with international artists under Essaouira\'s endless sky.',
+  'fes-festival-sacred-music': 'Sacred music from every corner of the world, performed in the courtyards and gardens of Africa\'s oldest medieval city.',
+  'mawazine-rabat': 'Morocco\'s largest gathering. Global headliners and local talent across seven stages in the capital.',
+};
+
+// Vibe tags
+const vibes: Record<string, { label: string; class: string }[]> = {
+  'festival-gnaoua-essaouira': [{ label: 'Massive', class: 'vibe-massive' }, { label: 'Coastal', class: 'vibe-remote' }],
+  'fes-festival-sacred-music': [{ label: 'Intimate', class: 'vibe-intimate' }, { label: 'Historic', class: 'vibe-urban' }],
+  'mawazine-rabat': [{ label: 'Massive', class: 'vibe-massive' }, { label: 'Urban', class: 'vibe-urban' }],
+};
+
+// Best-for tags
+const bestFor: Record<string, string[]> = {
+  'festival-gnaoua-essaouira': ['Music lovers', 'Photographers', 'First-timers'],
+  'fes-festival-sacred-music': ['Culture seekers', 'Families', 'Spiritual travelers'],
+  'mawazine-rabat': ['Concert-goers', 'Night owls', 'Groups'],
+};
 ---
 
-<Base title="Festivals in Morocco - Music Events & Concerts">
-  <section class="hero">
-    <h1>Music in Morocco</h1>
-    <p class="subtitle">Discover festivals, concerts, and musical traditions across Morocco</p>
-
-    <form class="search-form" action="/events" method="GET">
-      <input type="search" name="q" placeholder="Search events, traditions, cities..." autocomplete="off">
-      <button type="submit">Search</button>
-    </form>
+<Base title="Festivals in Morocco - Music Events, Concerts & Cultural Celebrations">
+  <!-- HERO SECTION -->
+  <section class="hero" slot="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <span class="hero-label">Festivals in Morocco</span>
+      <h1>Music lives here</h1>
+      <p class="hero-subtitle">
+        From Gnawa trance ceremonies to world-class festivals — discover Morocco's living musical traditions
+      </p>
+      <form class="hero-search" action="/search" method="GET">
+        <div class="search-input-wrap">
+          <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input type="search" name="q" placeholder="Search events, traditions, cities..." autocomplete="off">
+        </div>
+        <button type="submit">Search</button>
+      </form>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-number">{upcoming.length}+</span>
+          <span class="stat-label">Upcoming Events</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">{traditions.length}</span>
+          <span class="stat-label">Music Traditions</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">{cities.length}+</span>
+          <span class="stat-label">Cities</span>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <section class="featured">
+  <!-- FILTER PILLS -->
+  <section class="filter-section">
+    <div class="filter-pills">
+      <a href="/events" class="pill active">All Events</a>
+      <a href="/events?type=festival" class="pill">Festivals</a>
+      <a href="/events?type=moussem" class="pill">Moussems</a>
+      <a href="/events?type=concert" class="pill">Concerts</a>
+      <a href="/events?category=rooted" class="pill pill-rooted">Rooted</a>
+      <a href="/events?category=hybrid" class="pill pill-hybrid">Contemporary</a>
+    </div>
+  </section>
+
+  <!-- FEATURED EVENTS -->
+  <section class="featured section">
     <div class="section-header">
-      <h2>Featured Events</h2>
-      <a href="/events" class="view-all">View all</a>
+      <div>
+        <h2>Featured Events</h2>
+        <p class="subtitle">Major cultural moments worth planning around</p>
+      </div>
+      <a href="/events" class="view-all">View all events</a>
     </div>
 
     <div class="featured-grid">
-      {featured.map(event => {
+      {featured.map((event, i) => {
         const eventTraditions = event.traditions
           .map(tid => MUSIC_TRADITIONS[tid])
           .filter(Boolean);
         const hasSacred = eventTraditions.some(t => t.sacred);
+        const startDate = event.timing.gregorian_start ? new Date(event.timing.gregorian_start) : null;
 
         return (
-          <a href={`/events/${event.slug}`} class="featured-card" data-weight={event.cultural_weight}>
+          <a href={`/events/${event.slug}`} class="featured-card img-zoom">
+            <div class="featured-image" style={`background: ${gradients[i % gradients.length]}`}>
+              <div class="featured-image-overlay"></div>
+              {hasSacred && <span class="card-badge badge-sacred">Sacred</span>}
+              <div class="featured-date">
+                {startDate && (
+                  <>
+                    <span class="date-day">{startDate.getDate()}</span>
+                    <span class="date-month">{startDate.toLocaleDateString('en-GB', { month: 'short' })}</span>
+                  </>
+                )}
+              </div>
+            </div>
             <div class="featured-content">
-              <span class="date">{formatDateRange(event.timing)}</span>
-              <h3>
-                {event.name}
-                {event.name_ar && <span class="name-local">{event.name_ar}</span>}
-              </h3>
-              <p class="location">{formatLocation(event.location)}</p>
-              <div class="traditions">
+              <div class="featured-meta">
+                <span class="badge badge-accent">{EventTypeLabels[event.event_type]}</span>
+                {vibes[event.slug]?.map(v => (
+                  <span class={`badge ${v.class}`}>{v.label}</span>
+                ))}
+              </div>
+              <h3>{event.name}</h3>
+              <p class="featured-location">{formatLocation(event.location)}</p>
+              
+              {whyGo[event.slug] && (
+                <p class="why-go">{whyGo[event.slug]}</p>
+              )}
+
+              <div class="featured-traditions">
                 {eventTraditions.slice(0, 3).map(tradition => (
-                  <span class="tradition-tag" data-category={tradition.category}>
+                  <span class="tradition-pill" data-category={tradition.category}>
                     {tradition.name}
                   </span>
                 ))}
               </div>
-            </div>
-            <div class="card-badges">
-              {event.is_verified && <span class="verified-badge" title="Verified">✓</span>}
-              {hasSacred && <span class="sacred-badge" title="Features sacred tradition">◆</span>}
+
+              {bestFor[event.slug] && (
+                <div class="best-for-row">
+                  <span class="best-for-label">Best for:</span>
+                  {bestFor[event.slug].map(bf => (
+                    <span class="best-for">{bf}</span>
+                  ))}
+                </div>
+              )}
             </div>
           </a>
         );
@@ -72,426 +182,892 @@ const hybridTraditions = traditions.filter(t => t.category === TraditionCategory
     </div>
   </section>
 
-  <section class="upcoming">
+  <!-- TIMELINE VIEW -->
+  <section class="timeline-section section">
     <div class="section-header">
-      <h2>Upcoming Events</h2>
-      <a href="/events" class="view-all">View all</a>
+      <div>
+        <h2>Coming Up</h2>
+        <p class="subtitle">Browse events by month</p>
+      </div>
+      <div class="timeline-nav">
+        <button class="timeline-arrow prev" id="timeline-prev" aria-label="Previous months">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
+        <button class="timeline-arrow next" id="timeline-next" aria-label="Next months">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <div class="events-list">
-      {upcoming.map(event => {
-        const startDate = event.timing.gregorian_start ? new Date(event.timing.gregorian_start) : null;
-        const eventTraditions = event.traditions
-          .map(tid => MUSIC_TRADITIONS[tid])
-          .filter(Boolean);
+    <div class="timeline-container" id="timeline">
+      <div class="timeline-track">
+        {months.map(monthKey => {
+          const [year, month] = monthKey.split('-');
+          const monthDate = new Date(parseInt(year), parseInt(month) - 1);
+          const monthName = monthDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+          const events = eventsByMonth[monthKey];
 
-        return (
-          <a href={`/events/${event.slug}`} class="event-row">
-            {startDate ? (
-              <div class="event-date">
-                <span class="day">{startDate.getDate()}</span>
-                <span class="month">{startDate.toLocaleDateString('en-GB', { month: 'short' })}</span>
+          return (
+            <div class="timeline-month">
+              <h3 class="month-label">{monthName}</h3>
+              <div class="month-events">
+                {events.slice(0, 3).map(event => {
+                  const startDate = event.timing.gregorian_start ? new Date(event.timing.gregorian_start) : null;
+                  return (
+                    <a href={`/events/${event.slug}`} class="timeline-event card">
+                      <div class="timeline-event-date">
+                        {startDate && (
+                          <>
+                            <span class="te-day">{startDate.getDate()}</span>
+                            <span class="te-dow">{startDate.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
+                          </>
+                        )}
+                      </div>
+                      <div class="timeline-event-info">
+                        <h4>{event.name}</h4>
+                        <p>{event.location.city || event.location.region}</p>
+                      </div>
+                    </a>
+                  );
+                })}
+                {events.length > 3 && (
+                  <a href={`/events?month=${monthKey}`} class="more-link">
+                    +{events.length - 3} more
+                  </a>
+                )}
               </div>
-            ) : (
-              <div class="event-date">
-                <span class="day">TBA</span>
-              </div>
-            )}
-            <div class="event-info">
-              <h3>{event.name}</h3>
-              <p>
-                {event.location.city || event.location.region}
-                {eventTraditions.length > 0 && ` · ${eventTraditions.slice(0, 2).map(t => t.name).join(', ')}`}
-              </p>
             </div>
-            <span class="event-type">{EventTypeLabels[event.event_type]}</span>
-          </a>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   </section>
 
-  <div class="two-col">
+  <!-- TWO COLUMN: TRADITIONS + CITIES -->
+  <div class="two-col section">
     <section class="traditions-home">
       <div class="section-header">
-        <h2>Rooted Traditions</h2>
-        <a href="/traditions" class="view-all">View all</a>
+        <div>
+          <h2>Music Traditions</h2>
+          <p class="subtitle">Ancestral sounds, living practice</p>
+        </div>
+        <a href="/traditions" class="view-all">Explore all</a>
       </div>
-      <p class="section-desc">Ancestral music forms indigenous to Morocco</p>
 
-      <div class="tag-list">
-        {rootedTraditions.map(tradition => (
-          <a href={`/traditions/${tradition.id}`} class="tag" data-sacred={tradition.sacred}>
-            {tradition.name}
-            {tradition.sacred && <span class="sacred-marker">◆</span>}
-            <span class="count">{tradition.count}</span>
+      <div class="tradition-grid">
+        {rootedTraditions.slice(0, 6).map((tradition, i) => (
+          <a href={`/traditions/${tradition.id}`} class="tradition-card-mini" data-sacred={tradition.sacred}>
+            <div class="tcm-icon" style={`background: ${gradients[i % gradients.length]}`}>
+              {tradition.sacred && <span class="sacred-diamond">◆</span>}
+            </div>
+            <div class="tcm-content">
+              <h4>{tradition.name}</h4>
+              {tradition.name_ar && <span class="tcm-ar">{tradition.name_ar}</span>}
+              <p class="tcm-desc">{tradition.description?.slice(0, 60)}...</p>
+              <span class="tcm-count">{tradition.count} events</span>
+            </div>
           </a>
         ))}
       </div>
 
       {hybridTraditions.length > 0 && (
-        <>
-          <h3 class="subsection-title">Contemporary</h3>
-          <div class="tag-list">
-            {hybridTraditions.map(tradition => (
-              <a href={`/traditions/${tradition.id}`} class="tag hybrid">
-                {tradition.name}
-                <span class="count">{tradition.count}</span>
-              </a>
-            ))}
-          </div>
-        </>
+        <div class="hybrid-tags">
+          <span class="hybrid-label">Contemporary:</span>
+          {hybridTraditions.map(tradition => (
+            <a href={`/traditions/${tradition.id}`} class="tag-pill hybrid">
+              {tradition.name}
+            </a>
+          ))}
+        </div>
       )}
     </section>
 
-    <section class="cities">
+    <section class="cities-home">
       <div class="section-header">
-        <h2>Cities</h2>
-        <a href="/cities" class="view-all">View all</a>
+        <div>
+          <h2>Cities</h2>
+          <p class="subtitle">Find events by location</p>
+        </div>
+        <a href="/cities" class="view-all">All cities</a>
       </div>
-      <p class="section-desc">Events by location</p>
 
-      <div class="tag-list">
-        {cities.map(city => (
-          <a href={`/cities/${city.slug}`} class="tag">
-            {city.name} <span class="count">{city.count}</span>
+      <div class="city-grid">
+        {cities.map((city, i) => (
+          <a href={`/cities/${city.slug}`} class="city-card" style={`--delay: ${i * 50}ms`}>
+            <div class="city-card-bg" style={`background: ${gradients[i % gradients.length]}`}></div>
+            <div class="city-card-content">
+              <h4>{city.name}</h4>
+              <span class="city-count">{city.count} events</span>
+            </div>
           </a>
         ))}
       </div>
     </section>
   </div>
+
+  <!-- MAP CTA -->
+  <section class="map-cta section">
+    <div class="map-cta-inner">
+      <div class="map-cta-content">
+        <h2>Explore the Map</h2>
+        <p>See all festivals and events across Morocco. Plan your route, discover what's happening near you.</p>
+        <a href="/map" class="map-cta-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          Open Map
+        </a>
+      </div>
+      <div class="map-cta-visual">
+        <div class="map-dots">
+          <span class="map-dot" style="top: 20%; left: 30%;"></span>
+          <span class="map-dot" style="top: 35%; left: 60%;"></span>
+          <span class="map-dot" style="top: 50%; left: 25%;"></span>
+          <span class="map-dot" style="top: 45%; left: 75%;"></span>
+          <span class="map-dot" style="top: 70%; left: 45%;"></span>
+          <span class="map-dot large" style="top: 60%; left: 35%;"></span>
+        </div>
+      </div>
+    </div>
+  </section>
 </Base>
 
+<script>
+  // Timeline scroll
+  const timeline = document.getElementById('timeline');
+  const prevBtn = document.getElementById('timeline-prev');
+  const nextBtn = document.getElementById('timeline-next');
+  
+  if (timeline && prevBtn && nextBtn) {
+    const scrollAmount = 320;
+    
+    prevBtn.addEventListener('click', () => {
+      timeline.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    });
+    
+    nextBtn.addEventListener('click', () => {
+      timeline.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    });
+  }
+</script>
+
 <style>
+  /* ═══════════════════════════════════════════════════════════════
+     HERO
+     ═══════════════════════════════════════════════════════════════ */
   .hero {
+    position: relative;
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #5A6F5E 0%, #3A4A3D 50%, #2C3830 100%);
+  }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, rgba(184,112,91,0.15) 0%, transparent 40%);
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
     text-align: center;
-    padding: 4rem 0;
+    padding: 2rem;
+    max-width: 720px;
+  }
+
+  .hero-label {
+    display: inline-block;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
   }
 
   .hero h1 {
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
+    color: #fff;
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
   }
 
-  .subtitle {
-    color: var(--text-muted);
-    font-size: 1.25rem;
-    margin-bottom: 2rem;
+  .hero-subtitle {
+    color: rgba(255,255,255,0.7);
+    font-size: 1.125rem;
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
-  .search-form {
+  .hero-search {
     display: flex;
-    gap: 0.5rem;
-    max-width: 500px;
-    margin: 0 auto;
+    gap: 0.75rem;
+    max-width: 480px;
+    margin: 0 auto 3rem;
   }
 
-  .search-form input {
+  .search-input-wrap {
     flex: 1;
-    padding: 0.875rem 1.25rem;
-    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255,255,255,0.4);
+  }
+
+  .hero-search input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
     border-radius: 8px;
-    background: var(--bg-card);
-    color: var(--text);
+    color: #fff;
     font-size: 1rem;
   }
 
-  .search-form input:focus {
-    outline: none;
-    border-color: var(--accent);
+  .hero-search input::placeholder {
+    color: rgba(255,255,255,0.4);
   }
 
-  .search-form button {
-    padding: 0.875rem 1.5rem;
-    background: var(--accent);
-    color: var(--accent-contrast);
+  .hero-search input:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.15);
+  }
+
+  .hero-search button {
+    padding: 1rem 2rem;
+    background: #fff;
+    color: var(--accent);
     border: none;
     border-radius: 8px;
     font-weight: 600;
+    font-size: 0.9rem;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all var(--transition-fast);
   }
 
-  .search-form button:hover {
-    background: var(--accent-hover);
+  .hero-search button:hover {
+    background: rgba(255,255,255,0.9);
+    transform: translateY(-1px);
   }
 
-  section {
-    margin-bottom: 3rem;
-  }
-
-  .section-header {
+  .hero-stats {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
+    justify-content: center;
+    gap: 3rem;
   }
 
-  .section-header h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
+  .stat {
+    text-align: center;
   }
 
-  .section-desc {
+  .stat-number {
+    display: block;
+    color: #fff;
+    font-family: var(--font-serif);
+    font-size: 2rem;
+  }
+
+  .stat-label {
+    color: rgba(255,255,255,0.5);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     FILTER PILLS
+     ═══════════════════════════════════════════════════════════════ */
+  .filter-section {
+    padding: 2rem 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-warm);
+  }
+
+  .filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .pill {
+    padding: 0.5rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 0.85rem;
     color: var(--text-muted);
-    font-size: 0.9rem;
-    margin-bottom: 1rem;
+    background: var(--bg-card);
+    transition: all var(--transition-fast);
   }
 
-  .view-all {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-  }
-
-  .view-all:hover {
+  .pill:hover {
+    border-color: var(--accent);
     color: var(--accent);
   }
 
+  .pill.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .pill-rooted { border-color: var(--category-rooted); color: var(--category-rooted); }
+  .pill-hybrid { border-color: var(--category-hybrid); color: var(--category-hybrid); }
+
+  /* ═══════════════════════════════════════════════════════════════
+     FEATURED CARDS
+     ═══════════════════════════════════════════════════════════════ */
   .featured-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 2rem;
   }
 
   .featured-card {
-    position: relative;
+    display: block;
     background: var(--bg-card);
+    border-radius: 16px;
+    overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.5rem;
-    transition: border-color 0.2s, transform 0.2s;
+    transition: all var(--transition-base);
   }
 
   .featured-card:hover {
     border-color: var(--accent);
-    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
   }
 
-  .featured-card[data-weight="4"],
-  .featured-card[data-weight="5"] {
-    border-left: 3px solid var(--accent);
+  .featured-image {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
   }
 
-  .featured-card .date {
-    color: var(--accent);
-    font-size: 0.875rem;
-    font-weight: 500;
+  .featured-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%);
+  }
+
+  .card-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .featured-date {
+    position: absolute;
+    bottom: 1rem;
+    left: 1rem;
+    text-align: center;
+    color: #fff;
+  }
+
+  .date-day {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .date-month {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+  }
+
+  .featured-content {
+    padding: 1.5rem;
+  }
+
+  .featured-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
   }
 
   .featured-card h3 {
-    font-size: 1.25rem;
-    margin: 0.5rem 0;
+    font-size: 1.35rem;
+    margin-bottom: 0.35rem;
+    color: var(--text);
   }
 
-  .name-local {
-    display: block;
-    font-size: 1rem;
-    font-weight: 400;
-    color: var(--text-muted);
-  }
-
-  .featured-card .location {
+  .featured-location {
     color: var(--text-muted);
     font-size: 0.9rem;
     margin-bottom: 1rem;
   }
 
-  .traditions {
+  .why-go {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    font-style: italic;
+  }
+
+  .featured-traditions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+    margin-bottom: 1rem;
   }
 
-  .tradition-tag {
+  .tradition-pill {
     padding: 0.25rem 0.75rem;
     border-radius: 100px;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
   }
 
-  .tradition-tag[data-category="rooted"] {
+  .tradition-pill[data-category="rooted"] {
     background: var(--category-rooted-bg);
     color: var(--category-rooted);
   }
 
-  .tradition-tag[data-category="hybrid"] {
+  .tradition-pill[data-category="hybrid"] {
     background: var(--category-hybrid-bg);
     color: var(--category-hybrid);
   }
 
-  .tradition-tag[data-category="imported"] {
+  .tradition-pill[data-category="imported"] {
     background: var(--category-imported-bg);
     color: var(--category-imported);
   }
 
-  .card-badges {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
+  .best-for-row {
     display: flex;
-    gap: 0.375rem;
-  }
-
-  .verified-badge {
-    background: var(--accent);
-    color: var(--accent-contrast);
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-  }
-
-  .sacred-badge {
-    background: var(--sacred);
-    color: var(--accent-contrast);
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.65rem;
-  }
-
-  .events-list {
-    display: flex;
-    flex-direction: column;
     gap: 0.5rem;
   }
 
-  .event-row {
+  .best-for-label {
+    font-size: 0.7rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .best-for {
+    padding: 0.2rem 0.5rem;
+    background: var(--bg-warm);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     TIMELINE
+     ═══════════════════════════════════════════════════════════════ */
+  .timeline-section .section-header {
+    align-items: center;
+  }
+
+  .timeline-nav {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .timeline-arrow {
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--bg-card);
     display: flex;
     align-items: center;
-    gap: 1.5rem;
-    padding: 1rem 1.25rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    transition: border-color 0.2s;
-  }
-
-  .event-row:hover {
-    border-color: var(--text-muted);
-  }
-
-  .event-date {
-    text-align: center;
-    min-width: 50px;
-  }
-
-  .event-date .day {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 700;
-    line-height: 1;
-  }
-
-  .event-date .month {
-    display: block;
-    font-size: 0.75rem;
+    justify-content: center;
+    cursor: pointer;
     color: var(--text-muted);
-    text-transform: uppercase;
+    transition: all var(--transition-fast);
   }
 
-  .event-info {
-    flex: 1;
+  .timeline-arrow:hover {
+    border-color: var(--accent);
+    color: var(--accent);
   }
 
-  .event-info h3 {
+  .timeline-container {
+    overflow-x: auto;
+    margin: 0 -1.5rem;
+    padding: 0 1.5rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .timeline-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .timeline-track {
+    display: flex;
+    gap: 2rem;
+    padding-bottom: 1rem;
+  }
+
+  .timeline-month {
+    flex: 0 0 300px;
+  }
+
+  .month-label {
     font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--accent);
+    display: inline-block;
+  }
+
+  .month-events {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .timeline-event {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    align-items: flex-start;
+  }
+
+  .timeline-event-date {
+    text-align: center;
+    min-width: 40px;
+  }
+
+  .te-day {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    color: var(--accent);
+  }
+
+  .te-dow {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .timeline-event-info h4 {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
     font-weight: 500;
     margin-bottom: 0.25rem;
   }
 
-  .event-info p {
-    font-size: 0.875rem;
+  .timeline-event-info p {
+    font-size: 0.8rem;
     color: var(--text-muted);
   }
 
-  .event-type {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    background: var(--bg);
-    padding: 0.25rem 0.75rem;
-    border-radius: 4px;
+  .more-link {
+    font-size: 0.8rem;
+    color: var(--accent);
+    padding-left: 1rem;
   }
 
+  /* ═══════════════════════════════════════════════════════════════
+     TWO COLUMN
+     ═══════════════════════════════════════════════════════════════ */
   .two-col {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 2rem;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 4rem;
   }
 
-  .subsection-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
+  .tradition-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
   }
 
-  .tag-list {
+  .tradition-card-mini {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    gap: 1rem;
+    padding: 1rem;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 100px;
-    font-size: 0.9rem;
-    transition: border-color 0.2s;
+    border-radius: 12px;
+    transition: all var(--transition-base);
   }
 
-  .tag:hover {
+  .tradition-card-mini:hover {
     border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
   }
 
-  .tag[data-sacred="true"] {
-    border-color: var(--sacred);
+  .tradition-card-mini[data-sacred="true"] {
+    border-left: 3px solid var(--sacred);
   }
 
-  .tag.hybrid {
-    border-color: var(--category-hybrid);
-  }
-
-  .sacred-marker {
-    color: var(--sacred);
-    font-size: 0.7rem;
-  }
-
-  .tag .count {
-    color: var(--text-muted);
+  .tcm-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
     font-size: 0.8rem;
   }
 
+  .tcm-content h4 {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+  }
+
+  .tcm-ar {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .tcm-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.35rem;
+    line-height: 1.4;
+  }
+
+  .tcm-count {
+    font-size: 0.7rem;
+    color: var(--accent);
+    margin-top: 0.35rem;
+    display: block;
+  }
+
+  .hybrid-tags {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .hybrid-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .tag-pill {
+    padding: 0.35rem 0.75rem;
+    border-radius: 100px;
+    font-size: 0.8rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    transition: all var(--transition-fast);
+  }
+
+  .tag-pill:hover {
+    border-color: var(--accent);
+  }
+
+  .tag-pill.hybrid {
+    border-color: var(--category-hybrid);
+    color: var(--category-hybrid);
+  }
+
+  .city-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .city-card {
+    position: relative;
+    height: 80px;
+    border-radius: 12px;
+    overflow: hidden;
+    animation: fadeIn 400ms ease-out backwards;
+    animation-delay: var(--delay);
+  }
+
+  .city-card-bg {
+    position: absolute;
+    inset: 0;
+    transition: transform 400ms ease;
+  }
+
+  .city-card:hover .city-card-bg {
+    transform: scale(1.1);
+  }
+
+  .city-card-content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 1rem;
+    background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%);
+  }
+
+  .city-card h4 {
+    color: #fff;
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .city-count {
+    color: rgba(255,255,255,0.7);
+    font-size: 0.7rem;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     MAP CTA
+     ═══════════════════════════════════════════════════════════════ */
+  .map-cta {
+    background: var(--bg-warm);
+    border-radius: 24px;
+    overflow: hidden;
+  }
+
+  .map-cta-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 280px;
+  }
+
+  .map-cta-content {
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .map-cta-content h2 {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .map-cta-content p {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    max-width: 320px;
+  }
+
+  .map-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all var(--transition-fast);
+    width: fit-content;
+  }
+
+  .map-cta-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+  }
+
+  .map-cta-visual {
+    position: relative;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  }
+
+  .map-dots {
+    position: absolute;
+    inset: 0;
+  }
+
+  .map-dot {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .map-dot.large {
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    animation-delay: 0.5s;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     RESPONSIVE
+     ═══════════════════════════════════════════════════════════════ */
+  @media (max-width: 900px) {
+    .two-col {
+      grid-template-columns: 1fr;
+      gap: 3rem;
+    }
+
+    .map-cta-inner {
+      grid-template-columns: 1fr;
+    }
+
+    .map-cta-visual {
+      height: 200px;
+    }
+
+    .tradition-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
   @media (max-width: 640px) {
-    .hero h1 {
-      font-size: 2rem;
-    }
-
-    .subtitle {
-      font-size: 1rem;
-    }
-
-    .search-form {
+    .hero { min-height: 90vh; }
+    .hero-stats { gap: 1.5rem; }
+    .stat-number { font-size: 1.5rem; }
+    
+    .hero-search {
       flex-direction: column;
     }
 
-    .event-row {
-      flex-wrap: wrap;
+    .featured-grid {
+      grid-template-columns: 1fr;
     }
 
-    .event-type {
-      margin-left: auto;
+    .city-grid {
+      grid-template-columns: 1fr;
     }
   }
 </style>

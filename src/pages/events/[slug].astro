@@ -2,15 +2,12 @@
 import Base from '../../layouts/Base.astro';
 import {
   getEvents,
-  getEventBySlug,
   formatDateRange,
   formatLocation,
   EventType,
   EventTypeLabels,
   EventTypeDescriptions,
   TraditionCategory,
-  TraditionCategoryLabels,
-  TemporalType,
   TemporalTypeLabels,
   DatePrecision,
   EventStatus,
@@ -41,6 +38,44 @@ const rootedTraditions = eventTraditions.filter(t => t.category === TraditionCat
 const hybridTraditions = eventTraditions.filter(t => t.category === TraditionCategory.HYBRID);
 const importedTraditions = eventTraditions.filter(t => t.category === TraditionCategory.IMPORTED);
 
+const startDate = event.timing.gregorian_start ? new Date(event.timing.gregorian_start) : null;
+
+// Placeholder gradients
+const gradients = [
+  'linear-gradient(135deg, #5A6F5E 0%, #3A4A3D 100%)',
+  'linear-gradient(135deg, #B8705B 0%, #8A5A50 100%)',
+  'linear-gradient(135deg, #7A706A 0%, #5A5A5A 100%)',
+];
+const gradient = gradients[Math.abs(event.slug.charCodeAt(0)) % gradients.length];
+
+// Editorial content
+const whyGo: Record<string, string> = {
+  'festival-gnaoua-essaouira': 'Where trance meets the Atlantic. Gnawa masters share stages with international artists under Essaouira\'s endless sky. The festival transforms the entire medina into a celebration of sound.',
+  'fes-festival-sacred-music': 'Sacred music from every corner of the world, performed in the courtyards and gardens of Africa\'s oldest medieval city. An experience that transcends entertainment.',
+  'mawazine-rabat': 'Morocco\'s largest gathering. Global headliners and local talent across seven stages in the capital. Free admission to most events makes this truly the people\'s festival.',
+};
+
+const vibes: Record<string, { label: string; class: string }[]> = {
+  'festival-gnaoua-essaouira': [{ label: 'Massive crowds', class: 'badge-outline' }, { label: 'Coastal', class: 'badge-outline' }, { label: 'Free events', class: 'badge-accent' }],
+  'fes-festival-sacred-music': [{ label: 'Intimate', class: 'badge-outline' }, { label: 'Historic venues', class: 'badge-outline' }, { label: 'Spiritual', class: 'badge-sacred' }],
+  'mawazine-rabat': [{ label: 'Massive crowds', class: 'badge-outline' }, { label: 'Urban', class: 'badge-outline' }, { label: 'Free events', class: 'badge-accent' }],
+};
+
+const bestFor: Record<string, string[]> = {
+  'festival-gnaoua-essaouira': ['Music lovers', 'Photographers', 'First-timers to Morocco'],
+  'fes-festival-sacred-music': ['Culture seekers', 'Families', 'Spiritual travelers'],
+  'mawazine-rabat': ['Concert-goers', 'Night owls', 'Groups of friends'],
+};
+
+// Related Slow Morocco stories (placeholders)
+const relatedStories = event.traditions.includes('gnawa') ? [
+  { title: 'The Night of the Gnawa', href: 'https://slowmorocco.com/stories/gnawa-night', source: 'Slow Morocco' },
+  { title: 'Essaouira: Wind, Music, and Light', href: 'https://slowmorocco.com/places/essaouira', source: 'Slow Morocco' },
+] : event.traditions.includes('sufi') ? [
+  { title: 'Inside a Sufi Ceremony', href: 'https://slowmorocco.com/stories/sufi-ceremony', source: 'Slow Morocco' },
+  { title: 'Fes: The Spiritual Heart', href: 'https://slowmorocco.com/places/fes', source: 'Slow Morocco' },
+] : [];
+
 // Schema.org structured data
 const schemaOrg = {
   "@context": "https://schema.org",
@@ -60,134 +95,212 @@ const schemaOrg = {
   },
   "description": event.description,
   "url": event.official_website,
-  "eventStatus": event.status === 'confirmed'
-    ? "https://schema.org/EventScheduled"
-    : event.status === 'cancelled'
-    ? "https://schema.org/EventCancelled"
-    : event.status === 'postponed'
-    ? "https://schema.org/EventPostponed"
-    : "https://schema.org/EventScheduled"
 };
 ---
 
 <Base
   title={`${event.name} - Festivals in Morocco`}
   description={event.description || `${event.name} in ${event.location.city || event.location.region}, Morocco`}
+  image={event.image_url}
 >
   <script type="application/ld+json" set:html={JSON.stringify(schemaOrg)} />
 
-  <nav class="breadcrumb">
-    <a href="/">Home</a>
-    <span>/</span>
-    <a href="/events">Events</a>
-    <span>/</span>
-    <span>{event.name}</span>
-  </nav>
-
-  <article class="event-detail">
-    <header>
-      <div class="event-meta">
-        <span class="event-type-badge">{EventTypeLabels[event.event_type]}</span>
-        {event.is_verified && <span class="verified-badge">Verified</span>}
-        {hasSacredTradition && <span class="sacred-badge">Sacred Tradition</span>}
-        <span class="status-badge" data-status={event.status}>{EventStatusLabels[event.status]}</span>
+  <!-- HERO -->
+  <section class="event-hero" slot="hero">
+    <div class="hero-bg" style={`background: ${gradient}`}></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <nav class="breadcrumb">
+        <a href="/">Home</a>
+        <span>/</span>
+        <a href="/events">Events</a>
+        <span>/</span>
+        <span>{event.name}</span>
+      </nav>
+      
+      <div class="hero-badges">
+        <span class="badge badge-accent">{EventTypeLabels[event.event_type]}</span>
+        {event.is_verified && <span class="badge badge-outline">✓ Verified</span>}
+        {hasSacredTradition && <span class="badge badge-sacred">◆ Sacred</span>}
+        <span class="badge badge-status" data-status={event.status}>{EventStatusLabels[event.status]}</span>
       </div>
 
       <h1>
         {event.name}
-        {event.name_ar && <span class="name-ar">{event.name_ar}</span>}
-        {event.name_tzm && <span class="name-tzm">{event.name_tzm}</span>}
+        {event.name_ar && <span class="name-local">{event.name_ar}</span>}
       </h1>
 
-      <p class="event-date-large">{formatDateRange(event.timing)}</p>
-      <p class="event-location-large">{formatLocation(event.location)}</p>
-    </header>
+      <div class="hero-meta">
+        <div class="meta-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          <span>{formatDateRange(event.timing)}</span>
+        </div>
+        <div class="meta-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+          <span>{formatLocation(event.location)}</span>
+        </div>
+      </div>
 
+      {vibes[event.slug] && (
+        <div class="hero-vibes">
+          {vibes[event.slug].map(v => (
+            <span class={`badge ${v.class}`}>{v.label}</span>
+          ))}
+        </div>
+      )}
+    </div>
+
+    {startDate && (
+      <div class="hero-date-badge">
+        <span class="hdb-day">{startDate.getDate()}</span>
+        <span class="hdb-month">{startDate.toLocaleDateString('en-GB', { month: 'short' })}</span>
+        <span class="hdb-year">{startDate.getFullYear()}</span>
+      </div>
+    )}
+
+    <div class="photo-credit">
+      Photo: Festival archives
+    </div>
+  </section>
+
+  <!-- MAIN CONTENT -->
+  <article class="event-detail">
     <div class="event-body">
       <div class="event-main">
-        {event.description && (
-          <section class="description">
-            <h2>About</h2>
-            <p>{event.description}</p>
+        <!-- WHY GO -->
+        {(whyGo[event.slug] || event.description) && (
+          <section class="why-go-section">
+            <h2>Why Go</h2>
+            <p class="why-go-text">{whyGo[event.slug] || event.description}</p>
+            
+            {bestFor[event.slug] && (
+              <div class="best-for-section">
+                <span class="bf-label">Best for:</span>
+                <div class="bf-tags">
+                  {bestFor[event.slug].map(bf => (
+                    <span class="bf-tag">{bf}</span>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         )}
 
-        {event.artists.length > 0 && (
-          <section class="artists">
-            <h2>Artists</h2>
-            <ul class="artist-list">
-              {event.artists.map(artist => (
-                <li>{artist}</li>
-              ))}
-            </ul>
-          </section>
-        )}
+        <!-- TRADITIONS -->
+        {eventTraditions.length > 0 && (
+          <section class="traditions-section">
+            <h2>Music Traditions</h2>
+            <p class="section-intro">
+              This event features music from the following traditions:
+            </p>
 
-        <section class="traditions-section">
-          <h2>Music Traditions</h2>
-          <p class="section-intro">
-            This event features music from the following traditions:
-          </p>
+            {rootedTraditions.length > 0 && (
+              <div class="tradition-group">
+                <h3>
+                  <span class="tg-dot rooted"></span>
+                  Rooted Traditions
+                </h3>
+                <p class="group-desc">Ancestral, pre-colonial, indigenous music forms</p>
+                <div class="tradition-list">
+                  {rootedTraditions.map(tradition => (
+                    <a href={`/traditions/${tradition.id}`} class="tradition-card" data-sacred={tradition.sacred}>
+                      <div class="tc-main">
+                        <span class="tc-name">
+                          {tradition.name}
+                          {tradition.sacred && <span class="sacred-marker">◆</span>}
+                        </span>
+                        {tradition.name_ar && <span class="tc-local">{tradition.name_ar}</span>}
+                      </div>
+                      <p class="tc-desc">{tradition.description}</p>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          {rootedTraditions.length > 0 && (
-            <div class="tradition-group">
-              <h3>Rooted Traditions</h3>
-              <p class="group-desc">Ancestral, pre-colonial, indigenous music forms</p>
-              <div class="tradition-list">
-                {rootedTraditions.map(tradition => (
-                  <a href={`/traditions/${tradition.id}`} class="tradition-card" data-sacred={tradition.sacred}>
-                    <span class="tradition-name">
+            {hybridTraditions.length > 0 && (
+              <div class="tradition-group">
+                <h3>
+                  <span class="tg-dot hybrid"></span>
+                  Contemporary Forms
+                </h3>
+                <p class="group-desc">Moroccan synthesis, post-independence expressions</p>
+                <div class="tradition-list">
+                  {hybridTraditions.map(tradition => (
+                    <a href={`/traditions/${tradition.id}`} class="tradition-card">
+                      <div class="tc-main">
+                        <span class="tc-name">{tradition.name}</span>
+                      </div>
+                      <p class="tc-desc">{tradition.description}</p>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {importedTraditions.length > 0 && (
+              <div class="tradition-group">
+                <h3>
+                  <span class="tg-dot imported"></span>
+                  International
+                </h3>
+                <div class="tradition-pills">
+                  {importedTraditions.map(tradition => (
+                    <a href={`/traditions/${tradition.id}`} class="tradition-pill">
                       {tradition.name}
-                      {tradition.sacred && <span class="sacred-marker" title="Sacred tradition">◆</span>}
-                    </span>
-                    {tradition.name_ar && <span class="tradition-name-local">{tradition.name_ar}</span>}
-                    {tradition.name_tzm && <span class="tradition-name-local">{tradition.name_tzm}</span>}
-                    <span class="tradition-desc">{tradition.description}</span>
-                  </a>
-                ))}
+                    </a>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </section>
+        )}
 
-          {hybridTraditions.length > 0 && (
-            <div class="tradition-group">
-              <h3>Hybrid / Contemporary</h3>
-              <p class="group-desc">Moroccan synthesis, post-independence forms</p>
-              <div class="tradition-list">
-                {hybridTraditions.map(tradition => (
-                  <a href={`/traditions/${tradition.id}`} class="tradition-card">
-                    <span class="tradition-name">{tradition.name}</span>
-                    <span class="tradition-desc">{tradition.description}</span>
-                  </a>
-                ))}
-              </div>
+        <!-- ARTISTS -->
+        {event.artists.length > 0 && (
+          <section class="artists-section">
+            <h2>Featured Artists</h2>
+            <div class="artist-grid">
+              {event.artists.map(artist => (
+                <div class="artist-card">
+                  <div class="artist-avatar">{artist.charAt(0)}</div>
+                  <span class="artist-name">{artist}</span>
+                </div>
+              ))}
             </div>
-          )}
+          </section>
+        )}
 
-          {importedTraditions.length > 0 && (
-            <div class="tradition-group">
-              <h3>International</h3>
-              <p class="group-desc">International forms present in Morocco</p>
-              <div class="tradition-list">
-                {importedTraditions.map(tradition => (
-                  <a href={`/traditions/${tradition.id}`} class="tradition-card">
-                    <span class="tradition-name">{tradition.name}</span>
-                    <span class="tradition-desc">{tradition.description}</span>
-                  </a>
-                ))}
-              </div>
+        <!-- RELATED STORIES -->
+        {relatedStories.length > 0 && (
+          <section class="related-section">
+            <h2>Related Stories</h2>
+            <p class="section-intro">Dive deeper into the traditions and places behind this event</p>
+            <div class="related-list">
+              {relatedStories.map(story => (
+                <a href={story.href} target="_blank" rel="noopener" class="related-card">
+                  <span class="rc-title">{story.title}</span>
+                  <span class="rc-source">{story.source} →</span>
+                </a>
+              ))}
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
+        <!-- HISTORICAL -->
         {event.historical_reference && (
-          <section class="historical">
+          <section class="historical-section">
             <h2>Historical Context</h2>
             <p>{event.historical_reference}</p>
           </section>
         )}
       </div>
 
+      <!-- SIDEBAR -->
       <aside class="event-sidebar">
         <div class="info-card">
           <h3>Event Details</h3>
@@ -222,7 +335,6 @@ const schemaOrg = {
               ) : (
                 event.location.area_description
               )}
-              <br />
               <span class="region-name">{event.location.region}</span>
             </span>
           </div>
@@ -248,184 +360,228 @@ const schemaOrg = {
               <span class="type-desc">{EventTypeDescriptions[event.event_type]}</span>
             </span>
           </div>
-
-          <div class="info-row">
-            <span class="info-label">Status</span>
-            <span class="info-value status-value" data-status={event.status}>
-              {EventStatusLabels[event.status]}
-            </span>
-          </div>
         </div>
 
         {(event.official_website || event.ticket_url) && (
           <div class="links-card">
-            <h3>Links</h3>
-            {event.official_website && (
-              <a href={event.official_website} target="_blank" rel="noopener noreferrer" class="link-btn">
-                Official Website
-              </a>
-            )}
             {event.ticket_url && (
               <a href={event.ticket_url} target="_blank" rel="noopener noreferrer" class="link-btn primary">
                 Get Tickets
               </a>
             )}
+            {event.official_website && (
+              <a href={event.official_website} target="_blank" rel="noopener noreferrer" class="link-btn">
+                Official Website
+              </a>
+            )}
           </div>
         )}
 
-        <div class="classification-card">
-          <h3>Classification</h3>
-          <div class="classification-row">
-            <span class="class-label">Cultural Weight</span>
-            <span class="class-value">
-              <span class="weight-dots">
-                {[1, 2, 3, 4, 5].map(n => (
-                  <span class={`dot ${n <= event.cultural_weight ? 'filled' : ''}`} />
-                ))}
-              </span>
-              <span class="weight-number">{event.cultural_weight}/5</span>
-            </span>
+        <div class="weight-card">
+          <h3>Cultural Significance</h3>
+          <div class="weight-visual">
+            <div class="weight-bar">
+              <div class="weight-fill" style={`width: ${event.cultural_weight * 20}%`}></div>
+            </div>
+            <span class="weight-label">{event.cultural_weight}/5</span>
           </div>
           <p class="weight-rationale">{event.weight_rationale}</p>
+        </div>
+
+        <div class="map-preview">
+          <a href={`/map?event=${event.slug}`} class="map-link">
+            <div class="map-placeholder">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <span>View on map</span>
+          </a>
         </div>
       </aside>
     </div>
   </article>
 
   <nav class="back-nav">
-    <a href="/events">&larr; Back to all events</a>
+    <a href="/events">← Back to all events</a>
   </nav>
 </Base>
 
 <style>
+  /* ═══════════════════════════════════════════════════════════════
+     EVENT HERO
+     ═══════════════════════════════════════════════════════════════ */
+  .event-hero {
+    position: relative;
+    min-height: 50vh;
+    display: flex;
+    align-items: flex-end;
+    padding: 3rem 0;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+  }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%);
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    width: 100%;
+  }
+
   .breadcrumb {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    margin-bottom: 2rem;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 1.5rem;
   }
 
   .breadcrumb a:hover {
-    color: var(--accent);
+    color: #fff;
   }
 
-  .event-detail header {
-    margin-bottom: 2rem;
-  }
-
-  .event-meta {
+  .hero-badges {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
     flex-wrap: wrap;
+    gap: 0.5rem;
     margin-bottom: 1rem;
   }
 
-  .event-type-badge {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    background: var(--bg-card);
-    padding: 0.25rem 0.75rem;
-    border-radius: 4px;
-    border: 1px solid var(--border);
+  .hero-badges .badge {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border-color: rgba(255,255,255,0.3);
   }
 
-  .verified-badge {
-    font-size: 0.75rem;
-    background: var(--accent);
-    color: var(--accent-contrast);
-    padding: 0.25rem 0.75rem;
-    border-radius: 4px;
+  .hero-badges .badge-sacred {
+    background: rgba(138,90,80,0.4);
+    border-color: rgba(138,90,80,0.6);
   }
 
-  .sacred-badge {
-    font-size: 0.75rem;
-    background: var(--sacred);
-    color: var(--accent-contrast);
-    padding: 0.25rem 0.75rem;
-    border-radius: 4px;
+  .event-hero h1 {
+    color: #fff;
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin-bottom: 0.5rem;
+    max-width: 700px;
   }
 
-  .status-badge {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.75rem;
-    border-radius: 4px;
-  }
-
-  .status-badge[data-status="confirmed"] {
-    background: var(--status-confirmed-bg);
-    color: var(--status-confirmed);
-  }
-
-  .status-badge[data-status="announced"] {
-    background: var(--status-announced-bg);
-    color: var(--status-announced);
-  }
-
-  .event-detail h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    line-height: 1.2;
-    margin-bottom: 0.75rem;
-  }
-
-  .name-ar, .name-tzm {
+  .name-local {
     display: block;
-    font-size: 1.5rem;
-    font-weight: 400;
-    color: var(--text-muted);
+    font-size: 0.5em;
+    color: rgba(255,255,255,0.7);
     margin-top: 0.25rem;
   }
 
-  .event-date-large {
-    font-size: 1.25rem;
-    color: var(--accent);
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-  }
-
-  .event-location-large {
-    font-size: 1.1rem;
-    color: var(--text-muted);
-  }
-
-  .event-body {
-    display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: 3rem;
-  }
-
-  .event-main section {
-    margin-bottom: 2.5rem;
-  }
-
-  .event-main h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
     margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--border);
   }
 
-  .description p {
-    color: var(--text);
-    line-height: 1.7;
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(255,255,255,0.8);
+    font-size: 1rem;
   }
 
-  .artist-list {
-    list-style: none;
+  .meta-item svg {
+    opacity: 0.7;
+  }
+
+  .hero-vibes {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
   }
 
-  .artist-list li {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
+  .hero-vibes .badge {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.9);
+  }
+
+  .hero-date-badge {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    background: #fff;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .hdb-day {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 2.5rem;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  .hdb-month {
+    display: block;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  }
+
+  .hdb-year {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .photo-credit {
+    position: absolute;
+    bottom: 1rem;
+    right: 1.5rem;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.4);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     MAIN CONTENT
+     ═══════════════════════════════════════════════════════════════ */
+  .event-detail {
+    padding: 3rem 0 4rem;
+  }
+
+  .event-body {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 4rem;
+  }
+
+  .event-main section {
+    margin-bottom: 3rem;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .event-main section:last-child {
+    border-bottom: none;
+  }
+
+  .event-main h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
   }
 
   .section-intro {
@@ -434,49 +590,106 @@ const schemaOrg = {
     margin-bottom: 1.5rem;
   }
 
-  .tradition-group {
+  /* Why Go */
+  .why-go-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--text);
     margin-bottom: 1.5rem;
   }
 
-  .tradition-group h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
+  .best-for-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-warm);
+    border-radius: 8px;
   }
+
+  .bf-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .bf-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .bf-tag {
+    padding: 0.35rem 0.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 0.8rem;
+    color: var(--text);
+  }
+
+  /* Traditions */
+  .tradition-group {
+    margin-bottom: 2rem;
+  }
+
+  .tradition-group h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .tg-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .tg-dot.rooted { background: var(--category-rooted); }
+  .tg-dot.hybrid { background: var(--category-hybrid); }
+  .tg-dot.imported { background: var(--category-imported); }
 
   .group-desc {
     font-size: 0.8rem;
     color: var(--text-muted);
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
   }
 
   .tradition-list {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
   }
 
   .tradition-card {
     display: block;
-    padding: 1rem;
+    padding: 1.25rem;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    transition: border-color 0.2s;
+    border-radius: 12px;
+    transition: all var(--transition-base);
   }
 
   .tradition-card:hover {
     border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
   }
 
   .tradition-card[data-sacred="true"] {
     border-left: 3px solid var(--sacred);
   }
 
-  .tradition-name {
-    display: block;
+  .tc-main {
+    margin-bottom: 0.5rem;
+  }
+
+  .tc-name {
     font-weight: 600;
-    margin-bottom: 0.25rem;
   }
 
   .sacred-marker {
@@ -484,20 +697,112 @@ const schemaOrg = {
     margin-left: 0.25rem;
   }
 
-  .tradition-name-local {
+  .tc-local {
     display: inline-block;
+    margin-left: 0.5rem;
     font-size: 0.85rem;
     color: var(--text-muted);
-    margin-right: 0.5rem;
   }
 
-  .tradition-desc {
-    display: block;
-    font-size: 0.85rem;
+  .tc-desc {
+    font-size: 0.875rem;
     color: var(--text-muted);
-    margin-top: 0.25rem;
+    line-height: 1.5;
   }
 
+  .tradition-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tradition-pill {
+    padding: 0.5rem 1rem;
+    background: var(--category-imported-bg);
+    border-radius: 100px;
+    font-size: 0.85rem;
+    color: var(--category-imported);
+    transition: all var(--transition-fast);
+  }
+
+  .tradition-pill:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+
+  /* Artists */
+  .artist-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .artist-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .artist-avatar {
+    width: 36px;
+    height: 36px;
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .artist-name {
+    font-size: 0.9rem;
+  }
+
+  /* Related Stories */
+  .related-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .related-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: var(--bg-warm);
+    border-radius: 8px;
+    transition: all var(--transition-fast);
+  }
+
+  .related-card:hover {
+    background: var(--accent-light);
+  }
+
+  .rc-title {
+    font-weight: 500;
+  }
+
+  .rc-source {
+    font-size: 0.8rem;
+    color: var(--accent);
+  }
+
+  /* Historical */
+  .historical-section p {
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SIDEBAR
+     ═══════════════════════════════════════════════════════════════ */
   .event-sidebar {
     display: flex;
     flex-direction: column;
@@ -506,17 +811,17 @@ const schemaOrg = {
 
   .info-card,
   .links-card,
-  .classification-card {
+  .weight-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 1.5rem;
   }
 
   .info-card h3,
-  .links-card h3,
-  .classification-card h3 {
-    font-size: 1rem;
+  .weight-card h3 {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
     font-weight: 600;
     margin-bottom: 1rem;
   }
@@ -525,7 +830,7 @@ const schemaOrg = {
     display: flex;
     justify-content: space-between;
     padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border-light);
     gap: 1rem;
   }
 
@@ -535,12 +840,11 @@ const schemaOrg = {
 
   .info-label {
     color: var(--text-muted);
-    font-size: 0.9rem;
-    flex-shrink: 0;
+    font-size: 0.85rem;
   }
 
   .info-value {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     text-align: right;
   }
 
@@ -548,110 +852,117 @@ const schemaOrg = {
     color: var(--accent);
   }
 
-  .region-name {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-  }
-
+  .region-name,
+  .type-desc,
   .precision-note {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-  }
-
-  .type-desc {
     display: block;
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-top: 0.25rem;
   }
 
-  .status-value[data-status="confirmed"] {
-    color: var(--status-confirmed);
-  }
-
-  .status-value[data-status="announced"] {
-    color: var(--status-announced);
-  }
-
   .link-btn {
     display: block;
     text-align: center;
-    padding: 0.75rem 1rem;
+    padding: 0.875rem 1rem;
     border: 1px solid var(--border);
     border-radius: 8px;
+    font-weight: 500;
     margin-bottom: 0.75rem;
-    transition: border-color 0.2s;
-  }
-
-  .link-btn:hover {
-    border-color: var(--accent);
+    transition: all var(--transition-fast);
   }
 
   .link-btn:last-child {
     margin-bottom: 0;
   }
 
+  .link-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
   .link-btn.primary {
     background: var(--accent);
-    color: var(--accent-contrast);
+    color: #fff;
     border-color: var(--accent);
-    font-weight: 600;
   }
 
   .link-btn.primary:hover {
     background: var(--accent-hover);
   }
 
-  .classification-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-  }
-
-  .class-label {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-  }
-
-  .class-value {
+  .weight-visual {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1rem;
+    margin-bottom: 1rem;
   }
 
-  .weight-dots {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+  .weight-bar {
+    flex: 1;
+    height: 6px;
     background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
   }
 
-  .dot.filled {
+  .weight-fill {
+    height: 100%;
     background: var(--accent);
+    border-radius: 3px;
+    transition: width 600ms ease;
   }
 
-  .weight-number {
+  .weight-label {
     font-size: 0.85rem;
-    color: var(--text-muted);
+    font-weight: 600;
+    color: var(--accent);
   }
 
   .weight-rationale {
     font-size: 0.8rem;
     color: var(--text-muted);
     line-height: 1.5;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border);
   }
 
+  .map-preview {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .map-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--accent-light);
+    transition: all var(--transition-fast);
+  }
+
+  .map-link:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .map-link:hover .map-placeholder {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+  }
+
+  .map-placeholder {
+    width: 48px;
+    height: 48px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    transition: all var(--transition-fast);
+  }
+
+  /* Back Nav */
   .back-nav {
-    margin-top: 3rem;
     padding-top: 2rem;
     border-top: 1px solid var(--border);
   }
@@ -659,23 +970,54 @@ const schemaOrg = {
   .back-nav a {
     color: var(--text-muted);
     font-size: 0.9rem;
+    transition: color var(--transition-fast);
   }
 
   .back-nav a:hover {
     color: var(--accent);
   }
 
-  @media (max-width: 900px) {
+  /* ═══════════════════════════════════════════════════════════════
+     RESPONSIVE
+     ═══════════════════════════════════════════════════════════════ */
+  @media (max-width: 1024px) {
     .event-body {
       grid-template-columns: 1fr;
     }
 
-    .event-detail h1 {
-      font-size: 2rem;
+    .event-sidebar {
+      order: -1;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
     }
 
-    .name-ar, .name-tzm {
-      font-size: 1.25rem;
+    .info-card {
+      grid-column: span 2;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .event-hero {
+      min-height: 60vh;
+    }
+
+    .hero-date-badge {
+      top: 1rem;
+      right: 1rem;
+      padding: 0.75rem 1rem;
+    }
+
+    .hdb-day {
+      font-size: 1.75rem;
+    }
+
+    .event-sidebar {
+      grid-template-columns: 1fr;
+    }
+
+    .info-card {
+      grid-column: span 1;
     }
   }
 </style>
