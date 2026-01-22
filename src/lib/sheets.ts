@@ -162,3 +162,101 @@ export async function getLegalPageContent(pageId: string): Promise<LegalPageCont
     return null;
   }
 }
+
+// =============================================================================
+// SITE SETTINGS - Hero & Newsletter Banners
+// =============================================================================
+
+export interface SiteSettings {
+  // Hero section
+  hero_image: string;
+  hero_title: string;
+  hero_subtitle: string;
+  hero_label: string;
+  
+  // Newsletter section
+  newsletter_title: string;
+  newsletter_description: string;
+  newsletter_background_image: string;
+  
+  // Site info
+  site_name: string;
+  site_tagline: string;
+}
+
+const DEFAULT_SETTINGS: SiteSettings = {
+  hero_image: '',
+  hero_title: 'Music lives here',
+  hero_subtitle: 'From Gnawa trance ceremonies to world-class festivals — discover Morocco\'s living musical traditions',
+  hero_label: 'Festivals in Morocco',
+  newsletter_title: 'Stay in the rhythm',
+  newsletter_description: 'Festivals, concerts, and cultural moments — delivered when they matter.',
+  newsletter_background_image: '',
+  site_name: 'Festivals in Morocco',
+  site_tagline: 'Discover festivals and music events in Morocco',
+};
+
+// Fetch data from Festivals Morocco sheet
+export async function getSheetData(tabName: string): Promise<any[]> {
+  try {
+    const sheets = getGoogleSheetsClient();
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: `${tabName}!A1:ZZ`,
+    });
+
+    const rows = response.data.values || [];
+    if (rows.length === 0) return [];
+
+    const headers = rows[0];
+    return rows.slice(1).map((row) => {
+      const obj: any = {};
+      headers.forEach((header: string, index: number) => {
+        obj[header] = row[index] || "";
+      });
+      return obj;
+    });
+  } catch (error: any) {
+    console.error(`Error fetching sheet "${tabName}":`, error.message);
+    return [];
+  }
+}
+
+// Get site settings from Google Sheets
+// Sheet tab: Site_Settings with columns: key, value
+export async function getSiteSettings(): Promise<SiteSettings> {
+  try {
+    const rows = await getSheetData("Site_Settings");
+    
+    if (rows.length === 0) {
+      console.log("[Festivals] No Site_Settings found, using defaults");
+      return DEFAULT_SETTINGS;
+    }
+    
+    // Convert rows to key-value object
+    const settings: Record<string, string> = {};
+    for (const row of rows) {
+      if (row.key && row.value !== undefined) {
+        settings[row.key] = row.value;
+      }
+    }
+    
+    console.log("[Festivals] Loaded site settings:", Object.keys(settings));
+    
+    return {
+      hero_image: settings.hero_image || DEFAULT_SETTINGS.hero_image,
+      hero_title: settings.hero_title || DEFAULT_SETTINGS.hero_title,
+      hero_subtitle: settings.hero_subtitle || DEFAULT_SETTINGS.hero_subtitle,
+      hero_label: settings.hero_label || DEFAULT_SETTINGS.hero_label,
+      newsletter_title: settings.newsletter_title || DEFAULT_SETTINGS.newsletter_title,
+      newsletter_description: settings.newsletter_description || DEFAULT_SETTINGS.newsletter_description,
+      newsletter_background_image: settings.newsletter_background_image || DEFAULT_SETTINGS.newsletter_background_image,
+      site_name: settings.site_name || DEFAULT_SETTINGS.site_name,
+      site_tagline: settings.site_tagline || DEFAULT_SETTINGS.site_tagline,
+    };
+  } catch (error) {
+    console.error("Error fetching site settings:", error);
+    return DEFAULT_SETTINGS;
+  }
+}

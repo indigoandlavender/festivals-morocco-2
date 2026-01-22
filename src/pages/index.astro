@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import { getSiteSettings } from '../lib/sheets';
 import {
   getUpcomingEvents,
   getFeaturedEvents,
@@ -12,6 +13,9 @@ import {
   TraditionCategory,
   MUSIC_TRADITIONS
 } from '../lib/api';
+
+// Fetch site settings from Google Sheets
+const settings = await getSiteSettings();
 
 const featured = getFeaturedEvents().slice(0, 3);
 const upcoming = getUpcomingEvents().slice(0, 12);
@@ -64,16 +68,20 @@ const bestFor: Record<string, string[]> = {
 };
 ---
 
-<Base title="Festivals in Morocco - Music Events, Concerts & Cultural Celebrations">
+<Base title="Festivals in Morocco - Music Events, Concerts & Cultural Celebrations" settings={settings}>
   <!-- HERO SECTION -->
   <section class="hero" slot="hero">
-    <div class="hero-bg"></div>
+    {settings.hero_image ? (
+      <div class="hero-bg" style={`background-image: url(${settings.hero_image}); background-size: cover; background-position: center;`}></div>
+    ) : (
+      <div class="hero-bg"></div>
+    )}
     <div class="hero-overlay"></div>
     <div class="hero-content">
-      <span class="hero-label">Festivals in Morocco</span>
-      <h1>Music lives here</h1>
+      <span class="hero-label">{settings.hero_label}</span>
+      <h1>{settings.hero_title}</h1>
       <p class="hero-subtitle">
-        From Gnawa trance ceremonies to world-class festivals — discover Morocco's living musical traditions
+        {settings.hero_subtitle}
       </p>
       <form class="hero-search" action="/search" method="GET">
         <div class="search-input-wrap">

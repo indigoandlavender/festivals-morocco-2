@@ -1,15 +1,19 @@
 ---
-import { getLegalPages } from '../lib/sheets';
+import { getLegalPages, getSiteSettings, type SiteSettings } from '../lib/sheets';
 
 interface Props {
   title: string;
   description?: string;
   image?: string;
   hideNewsletter?: boolean;
+  settings?: SiteSettings;
 }
 
-const { title, description = "Discover festivals and music events in Morocco", image, hideNewsletter = false } = Astro.props;
+const { title, description = "Discover festivals and music events in Morocco", image, hideNewsletter = false, settings: passedSettings } = Astro.props;
 const currentPath = Astro.url.pathname;
+
+// Use passed settings or fetch defaults
+const settings = passedSettings || await getSiteSettings();
 
 // Fetch legal pages from Nexus at build time
 let legalPages = [];
@@ -231,6 +235,13 @@ try {
       position: absolute;
       inset: 0;
       background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .newsletter-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(90, 111, 94, 0.85);
       pointer-events: none;
     }
 
@@ -458,10 +469,11 @@ try {
 
   <footer>
     {!hideNewsletter && (
-      <div class="footer-newsletter">
+      <div class="footer-newsletter" style={settings.newsletter_background_image ? `background-image: url(${settings.newsletter_background_image}); background-size: cover; background-position: center;` : ''}>
+        {settings.newsletter_background_image && <div class="newsletter-overlay"></div>}
         <div class="container">
-          <h3>Stay in the rhythm</h3>
-          <p>Festivals, concerts, and cultural moments — delivered when they matter.</p>
+          <h3>{settings.newsletter_title}</h3>
+          <p>{settings.newsletter_description}</p>
           <form class="newsletter-form" action="/api/newsletter" method="POST">
             <input type="email" name="email" placeholder="your@email.com" required>
             <button type="submit">Subscribe</button>
@@ -486,7 +498,7 @@ try {
           ))}
         </div>
         <div class="footer-bottom">
-          <span>© {new Date().getFullYear()} Festivals in Morocco</span>
+          <span>© {new Date().getFullYear()} Slow Morocco</span>
           <span>·</span>
           <span>Powered by <a href="https://slowmorocco.com" target="_blank" rel="noopener">Slow Morocco</a></span>
         </div>
