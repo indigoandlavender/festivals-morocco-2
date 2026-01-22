@@ -258,15 +258,19 @@ try {
        ═══════════════════════════════════════════════════════════════ */
     
     .footer-newsletter {
-      background: var(--footer-1);
       padding: 4rem 0;
       position: relative;
+    }
+
+    .footer-newsletter.no-image {
+      background: var(--footer-1);
     }
 
     .footer-newsletter::before {
       content: '';
       position: absolute;
       inset: 0;
+      z-index: 0;
       background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%);
       pointer-events: none;
     }
@@ -274,12 +278,14 @@ try {
     .newsletter-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(90, 111, 94, 0.85);
+      z-index: 1;
+      background: rgba(58, 74, 61, 0.8);
       pointer-events: none;
     }
 
     .footer-newsletter .container {
       position: relative;
+      z-index: 2;
       text-align: center;
       max-width: 540px;
     }
@@ -502,7 +508,7 @@ try {
 
   <footer>
     {!hideNewsletter && (
-      <div class="footer-newsletter" style={settings.newsletter_background_image ? `background: url(${settings.newsletter_background_image}) center/cover no-repeat;` : ''}>
+      <div class:list={["footer-newsletter", { "no-image": !settings.newsletter_background_image }]} style={settings.newsletter_background_image ? `background: url(${settings.newsletter_background_image}) center/cover no-repeat;` : ''}>
         {settings.newsletter_background_image && <div class="newsletter-overlay"></div>}
         <div class="container">
           <h3>{settings.newsletter_title}</h3>
