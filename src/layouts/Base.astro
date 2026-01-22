@@ -469,7 +469,7 @@ try {
 
   <footer>
     {!hideNewsletter && (
-      <div class="footer-newsletter" style={settings.newsletter_background_image ? `background-image: url(${settings.newsletter_background_image}); background-size: cover; background-position: center;` : ''}>
+      <div class="footer-newsletter" style={settings.newsletter_background_image ? `background: url(${settings.newsletter_background_image}) center/cover no-repeat;` : ''}>
         {settings.newsletter_background_image && <div class="newsletter-overlay"></div>}
         <div class="container">
           <h3>{settings.newsletter_title}</h3>
