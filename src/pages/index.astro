@@ -1068,20 +1068,214 @@ const bestFor: Record<string, string[]> = {
   }
 
   @media (max-width: 640px) {
-    .hero { min-height: 90vh; }
-    .hero-stats { gap: 1.5rem; }
-    .stat-number { font-size: 1.5rem; }
+    .section {
+      padding: 2.5rem 0;
+    }
+
+    .hero { 
+      min-height: 100vh; 
+      min-height: 100dvh;
+    }
+
+    .hero-content {
+      padding: 1rem;
+    }
+
+    .hero h1 {
+      font-size: 2.25rem;
+      line-height: 1.15;
+    }
+
+    .hero-subtitle {
+      font-size: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .hero-label {
+      font-size: 0.7rem;
+      margin-bottom: 1rem;
+    }
+
+    .hero-stats { 
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .stat {
+      min-width: 80px;
+    }
+
+    .stat-number { 
+      font-size: 1.25rem; 
+    }
+
+    .stat-label {
+      font-size: 0.6rem;
+    }
     
     .hero-search {
       flex-direction: column;
+      gap: 0.75rem;
     }
 
+    .hero-search input {
+      font-size: 0.95rem;
+    }
+
+    .hero-search button {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* Filter pills - horizontal scroll */
+    .filter-pills {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 0.5rem;
+      margin: 0 -1rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .filter-pills::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-pills .pill {
+      flex-shrink: 0;
+      font-size: 0.8rem;
+      padding: 0.5rem 1rem;
+    }
+
+    /* Section headers */
+    .section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .section-header h2 {
+      font-size: 1.5rem;
+    }
+
+    .section-header .subtitle {
+      font-size: 0.9rem;
+    }
+
+    /* Featured grid */
     .featured-grid {
       grid-template-columns: 1fr;
+      gap: 1.5rem;
     }
 
+    .event-card {
+      padding: 1rem;
+    }
+
+    .event-card h3 {
+      font-size: 1.1rem;
+    }
+
+    /* Timeline */
+    .timeline-section .section-header {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .timeline-container {
+      margin: 0 -1rem;
+      padding: 0 1rem;
+    }
+
+    .timeline-month {
+      min-width: 260px;
+    }
+
+    .month-label {
+      font-size: 0.9rem;
+    }
+
+    .timeline-event {
+      padding: 0.75rem;
+    }
+
+    .timeline-event h4 {
+      font-size: 0.9rem;
+    }
+
+    /* Cities grid */
     .city-grid {
       grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .city-card {
+      height: 140px;
+    }
+
+    /* Traditions */
+    .traditions-home h2,
+    .cities-home h2 {
+      font-size: 1.25rem;
+    }
+
+    .tradition-mini {
+      padding: 1rem;
+    }
+
+    .tradition-mini h4 {
+      font-size: 0.95rem;
+    }
+
+    /* Map CTA */
+    .map-cta {
+      padding: 2rem 0;
+    }
+
+    .map-cta-content h2 {
+      font-size: 1.5rem;
+    }
+
+    .map-cta-content p {
+      font-size: 0.95rem;
+    }
+
+    /* Vibe badges */
+    .vibe-badges {
+      gap: 0.4rem;
+    }
+
+    .vibe-badge {
+      font-size: 0.65rem;
+      padding: 0.25rem 0.5rem;
+    }
+
+    /* Best for tags */
+    .best-for {
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .best-for span {
+      font-size: 0.7rem;
+    }
+  }
+
+  /* Very small screens */
+  @media (max-width: 380px) {
+    .hero h1 {
+      font-size: 1.85rem;
+    }
+
+    .hero-stats {
+      gap: 0.75rem;
+    }
+
+    .stat-number {
+      font-size: 1.1rem;
     }
   }
 </style>
