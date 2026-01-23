@@ -1,24 +1,26 @@
 ---
 import Base from '../layouts/Base.astro';
-import { getSiteSettings } from '../lib/sheets';
+import { getSiteSettings, getSheetEvents, type SheetEvent } from '../lib/sheets';
 import {
-  getUpcomingEvents,
-  getFeaturedEvents,
   getCities,
   getTraditions,
-  formatDateRange,
-  formatLocation,
-  EventType,
-  EventTypeLabels,
   TraditionCategory,
   MUSIC_TRADITIONS
 } from '../lib/api';
 
-// Fetch site settings from Google Sheets
+// Fetch site settings and events from Google Sheets
 const settings = await getSiteSettings();
+const sheetEvents = await getSheetEvents();
 
-const featured = getFeaturedEvents().slice(0, 3);
-const upcoming = getUpcomingEvents().slice(0, 12);
+// Sort by date, filter upcoming
+const today = new Date().toISOString().split('T')[0];
+const upcoming = sheetEvents
+  .filter(e => e.startDate && e.startDate >= today)
+  .sort((a, b) => a.startDate.localeCompare(b.startDate))
+  .slice(0, 12);
+
+const featured = sheetEvents.slice(0, 3);
+
 const cities = getCities().slice(0, 8);
 const traditions = getTraditions();
 
@@ -27,18 +29,18 @@ const hybridTraditions = traditions.filter(t => t.category === TraditionCategory
 
 // Group upcoming events by month for timeline
 const eventsByMonth = upcoming.reduce((acc, event) => {
-  const start = event.timing.gregorian_start;
+  const start = event.startDate;
   if (!start) return acc;
   const date = new Date(start);
   const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   if (!acc[key]) acc[key] = [];
   acc[key].push(event);
   return acc;
-}, {} as Record<string, typeof upcoming>);
+}, {} as Record<string, SheetEvent[]>);
 
 const months = Object.keys(eventsByMonth).sort().slice(0, 6);
 
-// Placeholder images (warm gradients that match brand)
+// Placeholder gradients for events without images
 const gradients = [
   'linear-gradient(135deg, #5A6F5E 0%, #4A5C4D 100%)',
   'linear-gradient(135deg, #B8705B 0%, #8A5A50 100%)',
@@ -46,26 +48,17 @@ const gradients = [
   'linear-gradient(135deg, #6B7B8A 0%, #4A5A6A 100%)',
 ];
 
-// "Why Go" snippets for featured events
-const whyGo: Record<string, string> = {
-  'festival-gnaoua-essaouira': 'Where trance meets the Atlantic. Gnawa masters share stages with international artists under Essaouira\'s endless sky.',
-  'fes-festival-sacred-music': 'Sacred music from every corner of the world, performed in the courtyards and gardens of Africa\'s oldest medieval city.',
-  'mawazine-rabat': 'Morocco\'s largest gathering. Global headliners and local talent across seven stages in the capital.',
-};
-
-// Vibe tags
-const vibes: Record<string, { label: string; class: string }[]> = {
-  'festival-gnaoua-essaouira': [{ label: 'Massive', class: 'vibe-massive' }, { label: 'Coastal', class: 'vibe-remote' }],
-  'fes-festival-sacred-music': [{ label: 'Intimate', class: 'vibe-intimate' }, { label: 'Historic', class: 'vibe-urban' }],
-  'mawazine-rabat': [{ label: 'Massive', class: 'vibe-massive' }, { label: 'Urban', class: 'vibe-urban' }],
-};
-
-// Best-for tags
-const bestFor: Record<string, string[]> = {
-  'festival-gnaoua-essaouira': ['Music lovers', 'Photographers', 'First-timers'],
-  'fes-festival-sacred-music': ['Culture seekers', 'Families', 'Spiritual travelers'],
-  'mawazine-rabat': ['Concert-goers', 'Night owls', 'Groups'],
-};
+// Helper to format date range
+function formatDateRange(start: string, end?: string): string {
+  const startDate = new Date(start);
+  const startStr = startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  
+  if (!end || end === start) return startStr;
+  
+  const endDate = new Date(end);
+  const endStr = endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  return `${startStr} – ${endStr}`;
+}
 ---
 
 <Base title="Festivals in Morocco - Music Events, Concerts & Cultural Celebrations" settings={settings}>
@@ -133,17 +126,14 @@ const bestFor: Record<string, string[]> = {
 
     <div class="featured-grid">
       {featured.map((event, i) => {
-        const eventTraditions = event.traditions
-          .map(tid => MUSIC_TRADITIONS[tid])
-          .filter(Boolean);
-        const hasSacred = eventTraditions.some(t => t.sacred);
-        const startDate = event.timing.gregorian_start ? new Date(event.timing.gregorian_start) : null;
+        const startDate = event.startDate ? new Date(event.startDate) : null;
+        const hasImage = event.image && event.image.startsWith('http');
 
         return (
           <a href={`/events/${event.slug}`} class="featured-card img-zoom">
-            <div class="featured-image" style={`background: ${gradients[i % gradients.length]}`}>
+            <div class="featured-image" style={hasImage ? `background: url(${event.image}) center/cover no-repeat` : `background: ${gradients[i % gradients.length]}`}>
               <div class="featured-image-overlay"></div>
-              {hasSacred && <span class="card-badge badge-sacred">Sacred</span>}
+              <span class="card-badge badge-accent">{event.category}</span>
               <div class="featured-date">
                 {startDate && (
                   <>
@@ -154,32 +144,15 @@ const bestFor: Record<string, string[]> = {
               </div>
             </div>
             <div class="featured-content">
-              <div class="featured-meta">
-                <span class="badge badge-accent">{EventTypeLabels[event.event_type]}</span>
-                {vibes[event.slug]?.map(v => (
-                  <span class={`badge ${v.class}`}>{v.label}</span>
-                ))}
-              </div>
-              <h3>{event.name}</h3>
-              <p class="featured-location">{formatLocation(event.location)}</p>
+              <h3>{event.title_en}</h3>
+              <p class="featured-location">{event.city}{event.region ? `, ${event.region}` : ''}</p>
               
-              {whyGo[event.slug] && (
-                <p class="why-go">{whyGo[event.slug]}</p>
-              )}
+              <p class="why-go">{event.description_en.substring(0, 120)}...</p>
 
-              <div class="featured-traditions">
-                {eventTraditions.slice(0, 3).map(tradition => (
-                  <span class="tradition-pill" data-category={tradition.category}>
-                    {tradition.name}
-                  </span>
-                ))}
-              </div>
-
-              {bestFor[event.slug] && (
-                <div class="best-for-row">
-                  <span class="best-for-label">Best for:</span>
-                  {bestFor[event.slug].map(bf => (
-                    <span class="best-for">{bf}</span>
+              {event.tags.length > 0 && (
+                <div class="featured-traditions">
+                  {event.tags.slice(0, 3).map(tag => (
+                    <span class="tradition-pill">{tag}</span>
                   ))}
                 </div>
               )}
@@ -225,7 +198,7 @@ const bestFor: Record<string, string[]> = {
                 <h3 class="month-label">{monthName}</h3>
                 <div class="month-events">
                   {events.slice(0, 3).map(event => {
-                    const startDate = event.timing.gregorian_start ? new Date(event.timing.gregorian_start) : null;
+                    const startDate = event.startDate ? new Date(event.startDate) : null;
                     return (
                       <a href={`/events/${event.slug}`} class="timeline-event card">
                         <div class="timeline-event-date">
@@ -237,8 +210,8 @@ const bestFor: Record<string, string[]> = {
                           )}
                         </div>
                         <div class="timeline-event-info">
-                          <h4>{event.name}</h4>
-                          <p>{event.location.city || event.location.region}</p>
+                          <h4>{event.title_en}</h4>
+                          <p>{event.city || event.region}</p>
                         </div>
                       </a>
                     );

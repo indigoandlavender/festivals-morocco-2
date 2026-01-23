@@ -265,3 +265,83 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     return DEFAULT_SETTINGS;
   }
 }
+
+// =============================================================================
+// EVENTS FROM GOOGLE SHEETS
+// =============================================================================
+
+export interface SheetEvent {
+  id: string;
+  slug: string;
+  title_en: string;
+  title_ar?: string;
+  description_en: string;
+  category: string;
+  region: string;
+  city: string;
+  venue?: string;
+  startDate: string;
+  endDate?: string;
+  price_min?: number;
+  price_max?: number;
+  price_isFree: boolean;
+  image?: string;
+  tags: string[];
+  lat?: number;
+  lng?: number;
+  organizer?: string;
+  website?: string;
+  email?: string;
+  phone?: string;
+  status: string;
+}
+
+export async function getSheetEvents(): Promise<SheetEvent[]> {
+  try {
+    console.log("[Festivals] Fetching events from sheet:", SHEET_ID);
+    const rows = await getSheetData("Festivals");
+    
+    console.log("[Festivals] Events rows returned:", rows.length);
+    
+    if (rows.length === 0) {
+      console.log("[Festivals] No events found in sheet");
+      return [];
+    }
+    
+    const events: SheetEvent[] = rows
+      .filter((row: any) => row.status === 'published' && row.id)
+      .map((row: any) => ({
+        id: row.id,
+        slug: row.id, // Use id as slug
+        title_en: row.title_en || row.id,
+        title_ar: row.title_ar || '',
+        description_en: row.description_en || '',
+        category: row.category || 'festival',
+        region: row.region || '',
+        city: row.city || '',
+        venue: row.venue || '',
+        startDate: row.startDate || '',
+        endDate: row.endDate || row.startDate || '',
+        price_min: parseFloat(row.price_min) || 0,
+        price_max: parseFloat(row.price_max) || 0,
+        price_isFree: row.price_isFree === 'TRUE' || row.price_isFree === true,
+        image: row.image || '',
+        tags: row.tags ? row.tags.split(',').map((t: string) => t.trim()) : [],
+        lat: parseFloat(row.lat) || 0,
+        lng: parseFloat(row.lng) || 0,
+        organizer: row.organizer || '',
+        website: row.website || '',
+        email: row.email || '',
+        phone: row.phone || '',
+        status: row.status || 'published',
+      }));
+    
+    console.log("[Festivals] Processed events:", events.length);
+    console.log("[Festivals] First event image:", events[0]?.image?.substring(0, 60) || "(no image)");
+    
+    return events;
+  } catch (error) {
+    console.error("Error fetching events from sheet:", error);
+    return [];
+  }
+}

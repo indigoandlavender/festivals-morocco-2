@@ -1,44 +1,24 @@
 ---
 import Base from '../../layouts/Base.astro';
-import {
-  getEvents,
-  formatDateRange,
-  formatLocation,
-  EventType,
-  EventTypeLabels,
-  EventTypeDescriptions,
-  TraditionCategory,
-  TemporalTypeLabels,
-  DatePrecision,
-  EventStatus,
-  EventStatusLabels,
-  MUSIC_TRADITIONS
-} from '../../lib/api';
+import { getSheetEvents, type SheetEvent } from '../../lib/sheets';
 
-export function getStaticPaths() {
-  const events = getEvents();
+export async function getStaticPaths() {
+  const events = await getSheetEvents();
   return events.map(event => ({
     params: { slug: event.slug },
     props: { event }
   }));
 }
 
-const { event } = Astro.props;
+const { event } = Astro.props as { event: SheetEvent };
 
 if (!event) {
   return Astro.redirect('/events');
 }
 
-const eventTraditions = event.traditions
-  .map(tid => MUSIC_TRADITIONS[tid])
-  .filter(Boolean);
-
-const hasSacredTradition = eventTraditions.some(t => t.sacred);
-const rootedTraditions = eventTraditions.filter(t => t.category === TraditionCategory.ROOTED);
-const hybridTraditions = eventTraditions.filter(t => t.category === TraditionCategory.HYBRID);
-const importedTraditions = eventTraditions.filter(t => t.category === TraditionCategory.IMPORTED);
-
-const startDate = event.timing.gregorian_start ? new Date(event.timing.gregorian_start) : null;
+const startDate = event.startDate ? new Date(event.startDate) : null;
+const endDate = event.endDate ? new Date(event.endDate) : null;
+const hasImage = event.image && event.image.startsWith('http');
 
 // Placeholder gradients
 const gradients = [
@@ -48,66 +28,51 @@ const gradients = [
 ];
 const gradient = gradients[Math.abs(event.slug.charCodeAt(0)) % gradients.length];
 
-// Editorial content
-const whyGo: Record<string, string> = {
-  'festival-gnaoua-essaouira': 'Where trance meets the Atlantic. Gnawa masters share stages with international artists under Essaouira\'s endless sky. The festival transforms the entire medina into a celebration of sound.',
-  'fes-festival-sacred-music': 'Sacred music from every corner of the world, performed in the courtyards and gardens of Africa\'s oldest medieval city. An experience that transcends entertainment.',
-  'mawazine-rabat': 'Morocco\'s largest gathering. Global headliners and local talent across seven stages in the capital. Free admission to most events makes this truly the people\'s festival.',
-};
-
-const vibes: Record<string, { label: string; class: string }[]> = {
-  'festival-gnaoua-essaouira': [{ label: 'Massive crowds', class: 'badge-outline' }, { label: 'Coastal', class: 'badge-outline' }, { label: 'Free events', class: 'badge-accent' }],
-  'fes-festival-sacred-music': [{ label: 'Intimate', class: 'badge-outline' }, { label: 'Historic venues', class: 'badge-outline' }, { label: 'Spiritual', class: 'badge-sacred' }],
-  'mawazine-rabat': [{ label: 'Massive crowds', class: 'badge-outline' }, { label: 'Urban', class: 'badge-outline' }, { label: 'Free events', class: 'badge-accent' }],
-};
-
-const bestFor: Record<string, string[]> = {
-  'festival-gnaoua-essaouira': ['Music lovers', 'Photographers', 'First-timers to Morocco'],
-  'fes-festival-sacred-music': ['Culture seekers', 'Families', 'Spiritual travelers'],
-  'mawazine-rabat': ['Concert-goers', 'Night owls', 'Groups of friends'],
-};
-
-// Related Slow Morocco stories (placeholders)
-const relatedStories = event.traditions.includes('gnawa') ? [
-  { title: 'The Night of the Gnawa', href: 'https://slowmorocco.com/stories/gnawa-night', source: 'Slow Morocco' },
-  { title: 'Essaouira: Wind, Music, and Light', href: 'https://slowmorocco.com/places/essaouira', source: 'Slow Morocco' },
-] : event.traditions.includes('sufi') ? [
-  { title: 'Inside a Sufi Ceremony', href: 'https://slowmorocco.com/stories/sufi-ceremony', source: 'Slow Morocco' },
-  { title: 'Fes: The Spiritual Heart', href: 'https://slowmorocco.com/places/fes', source: 'Slow Morocco' },
-] : [];
+// Helper to format date range
+function formatDateRange(start: string, end?: string): string {
+  const startDate = new Date(start);
+  const startStr = startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  
+  if (!end || end === start) return startStr;
+  
+  const endDate = new Date(end);
+  const endStr = endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  return `${startStr} – ${endStr}`;
+}
 
 // Schema.org structured data
 const schemaOrg = {
   "@context": "https://schema.org",
   "@type": "MusicEvent",
-  "name": event.name,
-  "startDate": event.timing.gregorian_start,
-  "endDate": event.timing.gregorian_end || event.timing.gregorian_start,
+  "name": event.title_en,
+  "startDate": event.startDate,
+  "endDate": event.endDate || event.startDate,
   "location": {
     "@type": "Place",
-    "name": event.location.venue_name || event.location.city || event.location.area_description,
+    "name": event.venue || event.city,
     "address": {
       "@type": "PostalAddress",
-      "addressLocality": event.location.city,
-      "addressRegion": event.location.region,
+      "addressLocality": event.city,
+      "addressRegion": event.region,
       "addressCountry": "MA"
     }
   },
-  "description": event.description,
-  "url": event.official_website,
+  "description": event.description_en,
+  "url": event.website,
+  "image": event.image,
 };
 ---
 
 <Base
-  title={`${event.name} - Festivals in Morocco`}
-  description={event.description || `${event.name} in ${event.location.city || event.location.region}, Morocco`}
-  image={event.image_url}
+  title={`${event.title_en} - Festivals in Morocco`}
+  description={event.description_en || `${event.title_en} in ${event.city || event.region}, Morocco`}
+  image={event.image}
 >
   <script type="application/ld+json" set:html={JSON.stringify(schemaOrg)} />
 
   <!-- HERO -->
   <section class="event-hero" slot="hero">
-    <div class="hero-bg" style={`background: ${gradient}`}></div>
+    <div class="hero-bg" style={hasImage ? `background: url(${event.image}) center/cover no-repeat` : `background: ${gradient}`}></div>
     <div class="hero-overlay"></div>
     <div class="hero-content">
       <nav class="breadcrumb">
@@ -115,19 +80,16 @@ const schemaOrg = {
         <span>/</span>
         <a href="/events">Events</a>
         <span>/</span>
-        <span>{event.name}</span>
+        <span>{event.title_en}</span>
       </nav>
       
       <div class="hero-badges">
-        <span class="badge badge-accent">{EventTypeLabels[event.event_type]}</span>
-        {event.is_verified && <span class="badge badge-outline">✓ Verified</span>}
-        {hasSacredTradition && <span class="badge badge-sacred">◆ Sacred</span>}
-        <span class="badge badge-status" data-status={event.status}>{EventStatusLabels[event.status]}</span>
+        <span class="badge badge-accent">{event.category}</span>
       </div>
 
       <h1>
-        {event.name}
-        {event.name_ar && <span class="name-local">{event.name_ar}</span>}
+        {event.title_en}
+        {event.title_ar && <span class="name-local">{event.title_ar}</span>}
       </h1>
 
       <div class="hero-meta">
@@ -135,23 +97,15 @@ const schemaOrg = {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
-          <span>{formatDateRange(event.timing)}</span>
+          <span>{formatDateRange(event.startDate, event.endDate)}</span>
         </div>
         <div class="meta-item">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
           </svg>
-          <span>{formatLocation(event.location)}</span>
+          <span>{event.city}{event.region ? `, ${event.region}` : ''}</span>
         </div>
       </div>
-
-      {vibes[event.slug] && (
-        <div class="hero-vibes">
-          {vibes[event.slug].map(v => (
-            <span class={`badge ${v.class}`}>{v.label}</span>
-          ))}
-        </div>
-      )}
     </div>
 
     {startDate && (
@@ -171,131 +125,21 @@ const schemaOrg = {
   <article class="event-detail">
     <div class="event-body">
       <div class="event-main">
-        <!-- WHY GO -->
-        {(whyGo[event.slug] || event.description) && (
-          <section class="why-go-section">
-            <h2>Why Go</h2>
-            <p class="why-go-text">{whyGo[event.slug] || event.description}</p>
-            
-            {bestFor[event.slug] && (
-              <div class="best-for-section">
-                <span class="bf-label">Best for:</span>
-                <div class="bf-tags">
-                  {bestFor[event.slug].map(bf => (
-                    <span class="bf-tag">{bf}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
-        )}
+        <!-- ABOUT -->
+        <section class="why-go-section">
+          <h2>About This Event</h2>
+          <p class="why-go-text">{event.description_en}</p>
+        </section>
 
-        <!-- TRADITIONS -->
-        {eventTraditions.length > 0 && (
+        <!-- TAGS -->
+        {event.tags.length > 0 && (
           <section class="traditions-section">
-            <h2>Music Traditions</h2>
-            <p class="section-intro">
-              This event features music from the following traditions:
-            </p>
-
-            {rootedTraditions.length > 0 && (
-              <div class="tradition-group">
-                <h3>
-                  <span class="tg-dot rooted"></span>
-                  Rooted Traditions
-                </h3>
-                <p class="group-desc">Ancestral, pre-colonial, indigenous music forms</p>
-                <div class="tradition-list">
-                  {rootedTraditions.map(tradition => (
-                    <a href={`/traditions/${tradition.id}`} class="tradition-card" data-sacred={tradition.sacred}>
-                      <div class="tc-main">
-                        <span class="tc-name">
-                          {tradition.name}
-                          {tradition.sacred && <span class="sacred-marker">◆</span>}
-                        </span>
-                        {tradition.name_ar && <span class="tc-local">{tradition.name_ar}</span>}
-                      </div>
-                      <p class="tc-desc">{tradition.description}</p>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {hybridTraditions.length > 0 && (
-              <div class="tradition-group">
-                <h3>
-                  <span class="tg-dot hybrid"></span>
-                  Contemporary Forms
-                </h3>
-                <p class="group-desc">Moroccan synthesis, post-independence expressions</p>
-                <div class="tradition-list">
-                  {hybridTraditions.map(tradition => (
-                    <a href={`/traditions/${tradition.id}`} class="tradition-card">
-                      <div class="tc-main">
-                        <span class="tc-name">{tradition.name}</span>
-                      </div>
-                      <p class="tc-desc">{tradition.description}</p>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {importedTraditions.length > 0 && (
-              <div class="tradition-group">
-                <h3>
-                  <span class="tg-dot imported"></span>
-                  International
-                </h3>
-                <div class="tradition-pills">
-                  {importedTraditions.map(tradition => (
-                    <a href={`/traditions/${tradition.id}`} class="tradition-pill">
-                      {tradition.name}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
-        )}
-
-        <!-- ARTISTS -->
-        {event.artists.length > 0 && (
-          <section class="artists-section">
-            <h2>Featured Artists</h2>
-            <div class="artist-grid">
-              {event.artists.map(artist => (
-                <div class="artist-card">
-                  <div class="artist-avatar">{artist.charAt(0)}</div>
-                  <span class="artist-name">{artist}</span>
-                </div>
+            <h2>Tags</h2>
+            <div class="tags-grid">
+              {event.tags.map(tag => (
+                <span class="tag-pill">{tag}</span>
               ))}
             </div>
-          </section>
-        )}
-
-        <!-- RELATED STORIES -->
-        {relatedStories.length > 0 && (
-          <section class="related-section">
-            <h2>Related Stories</h2>
-            <p class="section-intro">Dive deeper into the traditions and places behind this event</p>
-            <div class="related-list">
-              {relatedStories.map(story => (
-                <a href={story.href} target="_blank" rel="noopener" class="related-card">
-                  <span class="rc-title">{story.title}</span>
-                  <span class="rc-source">{story.source} →</span>
-                </a>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <!-- HISTORICAL -->
-        {event.historical_reference && (
-          <section class="historical-section">
-            <h2>Historical Context</h2>
-            <p>{event.historical_reference}</p>
           </section>
         )}
       </div>
@@ -307,42 +151,35 @@ const schemaOrg = {
 
           <div class="info-row">
             <span class="info-label">Date</span>
-            <span class="info-value">
-              {formatDateRange(event.timing)}
-              {event.timing.date_precision === DatePrecision.APPROXIMATE && (
-                <span class="precision-note">(approximate)</span>
-              )}
-            </span>
+            <span class="info-value">{formatDateRange(event.startDate, event.endDate)}</span>
           </div>
 
           <div class="info-row">
-            <span class="info-label">Recurrence</span>
-            <span class="info-value">{TemporalTypeLabels[event.timing.temporal_type]}</span>
+            <span class="info-label">Location</span>
+            <span class="info-value">{event.city}{event.region ? `, ${event.region}` : ''}</span>
           </div>
 
-          {event.timing.recurrence_notes && (
+          {event.venue && (
             <div class="info-row">
-              <span class="info-label">Pattern</span>
-              <span class="info-value">{event.timing.recurrence_notes}</span>
+              <span class="info-label">Venue</span>
+              <span class="info-value">{event.venue}</span>
             </div>
           )}
 
           <div class="info-row">
-            <span class="info-label">Location</span>
-            <span class="info-value">
-              {event.location.city ? (
-                <a href={`/cities/${event.location.city_slug}`}>{event.location.city}</a>
-              ) : (
-                event.location.area_description
-              )}
-              <span class="region-name">{event.location.region}</span>
-            </span>
+            <span class="info-label">Category</span>
+            <span class="info-value">{event.category}</span>
           </div>
 
-          {event.location.venue_name && (
+          {event.price_isFree ? (
             <div class="info-row">
-              <span class="info-label">Venue</span>
-              <span class="info-value">{event.location.venue_name}</span>
+              <span class="info-label">Price</span>
+              <span class="info-value price-free">Free</span>
+            </div>
+          ) : event.price_min > 0 && (
+            <div class="info-row">
+              <span class="info-label">Price</span>
+              <span class="info-value">{event.price_min} – {event.price_max} MAD</span>
             </div>
           )}
 
@@ -352,59 +189,54 @@ const schemaOrg = {
               <span class="info-value">{event.organizer}</span>
             </div>
           )}
-
-          <div class="info-row">
-            <span class="info-label">Type</span>
-            <span class="info-value">
-              {EventTypeLabels[event.event_type]}
-              <span class="type-desc">{EventTypeDescriptions[event.event_type]}</span>
-            </span>
-          </div>
         </div>
 
-        {(event.official_website || event.ticket_url) && (
+        {(event.website || event.email || event.phone) && (
           <div class="links-card">
-            {event.ticket_url && (
-              <a href={event.ticket_url} target="_blank" rel="noopener noreferrer" class="link-btn primary">
-                Get Tickets
+            <h3>Links & Contact</h3>
+            {event.website && (
+              <a href={event.website} target="_blank" rel="noopener" class="link-btn primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+                Official Website
               </a>
             )}
-            {event.official_website && (
-              <a href={event.official_website} target="_blank" rel="noopener noreferrer" class="link-btn">
-                Official Website
+            {event.email && (
+              <a href={`mailto:${event.email}`} class="link-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                </svg>
+                {event.email}
+              </a>
+            )}
+            {event.phone && (
+              <a href={`tel:${event.phone}`} class="link-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+                {event.phone}
               </a>
             )}
           </div>
         )}
 
-        <div class="weight-card">
-          <h3>Cultural Significance</h3>
-          <div class="weight-visual">
-            <div class="weight-bar">
-              <div class="weight-fill" style={`width: ${event.cultural_weight * 20}%`}></div>
-            </div>
-            <span class="weight-label">{event.cultural_weight}/5</span>
+        {(event.lat && event.lng) && (
+          <div class="map-preview">
+            <h3>Location</h3>
+            <a href={`/map?event=${event.slug}`} class="map-link">
+              <div class="map-placeholder">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+                <span>View on map</span>
+              </div>
+            </a>
           </div>
-          <p class="weight-rationale">{event.weight_rationale}</p>
-        </div>
-
-        <div class="map-preview">
-          <a href={`/map?event=${event.slug}`} class="map-link">
-            <div class="map-placeholder">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-              </svg>
-            </div>
-            <span>View on map</span>
-          </a>
-        </div>
+        )}
       </aside>
     </div>
   </article>
-
-  <nav class="back-nav">
-    <a href="/events">← Back to all events</a>
-  </nav>
 </Base>
 
 <style>
