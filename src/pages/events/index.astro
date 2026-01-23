@@ -1,11 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { getSheetEvents, type SheetEvent } from '../../lib/sheets';
-import {
-  getCities,
-  getTraditions,
-  TraditionCategory,
-} from '../../lib/api';
+import { getCities } from '../../lib/api';
 
 const url = Astro.url;
 const cityFilter = url.searchParams.get('city');
@@ -15,7 +11,6 @@ const query = url.searchParams.get('q');
 // Fetch events from Google Sheets
 let events = await getSheetEvents();
 const cities = getCities();
-const traditions = getTraditions();
 
 // Apply filters
 if (cityFilter) {
@@ -39,11 +34,6 @@ if (query) {
 
 // Sort by date
 events.sort((a, b) => a.startDate.localeCompare(b.startDate));
-
-// Group traditions by category for the filter
-const rootedTraditions = traditions.filter(t => t.category === TraditionCategory.ROOTED);
-const hybridTraditions = traditions.filter(t => t.category === TraditionCategory.HYBRID);
-const importedTraditions = traditions.filter(t => t.category === TraditionCategory.IMPORTED);
 
 const hasFilters = cityFilter || categoryFilter || query;
 
@@ -90,57 +80,15 @@ function formatDateRange(start: string, end?: string): string {
     </div>
 
     <div class="filter-row">
-      <select name="type" id="type-filter">
-        <option value="">All Types</option>
-        {eventTypes.map(et => (
-          <option value={et.type} selected={typeFilter === et.type}>
-            {et.label} ({et.count})
-          </option>
-        ))}
-      </select>
-
       <select name="category" id="category-filter">
-        <option value="">All Tradition Categories</option>
-        <option value={TraditionCategory.ROOTED} selected={categoryFilter === TraditionCategory.ROOTED}>
-          Rooted Traditions
-        </option>
-        <option value={TraditionCategory.HYBRID} selected={categoryFilter === TraditionCategory.HYBRID}>
-          Hybrid / Contemporary
-        </option>
-        <option value={TraditionCategory.IMPORTED} selected={categoryFilter === TraditionCategory.IMPORTED}>
-          International
-        </option>
-      </select>
-
-      <select name="tradition" id="tradition-filter">
-        <option value="">All Traditions</option>
-        {rootedTraditions.length > 0 && (
-          <optgroup label="Rooted">
-            {rootedTraditions.map(t => (
-              <option value={t.id} selected={traditionFilter === t.id}>
-                {t.name} {t.sacred ? '●' : ''} ({t.count})
-              </option>
-            ))}
-          </optgroup>
-        )}
-        {hybridTraditions.length > 0 && (
-          <optgroup label="Hybrid">
-            {hybridTraditions.map(t => (
-              <option value={t.id} selected={traditionFilter === t.id}>
-                {t.name} ({t.count})
-              </option>
-            ))}
-          </optgroup>
-        )}
-        {importedTraditions.length > 0 && (
-          <optgroup label="International">
-            {importedTraditions.map(t => (
-              <option value={t.id} selected={traditionFilter === t.id}>
-                {t.name} ({t.count})
-              </option>
-            ))}
-          </optgroup>
-        )}
+        <option value="">All Categories</option>
+        <option value="festival" selected={categoryFilter === 'festival'}>Festivals</option>
+        <option value="moussem" selected={categoryFilter === 'moussem'}>Moussems</option>
+        <option value="concert" selected={categoryFilter === 'concert'}>Concerts</option>
+        <option value="heritage" selected={categoryFilter === 'heritage'}>Heritage</option>
+        <option value="cultural" selected={categoryFilter === 'cultural'}>Cultural</option>
+        <option value="art" selected={categoryFilter === 'art'}>Art</option>
+        <option value="sports" selected={categoryFilter === 'sports'}>Sports</option>
       </select>
 
       <select name="city" id="city-filter">
@@ -197,33 +145,23 @@ function formatDateRange(start: string, end?: string): string {
 </Base>
 
 <script>
-  const typeSelect = document.getElementById('type-filter') as HTMLSelectElement;
   const categorySelect = document.getElementById('category-filter') as HTMLSelectElement;
-  const traditionSelect = document.getElementById('tradition-filter') as HTMLSelectElement;
   const citySelect = document.getElementById('city-filter') as HTMLSelectElement;
 
   function applyFilters() {
     const params = new URLSearchParams(window.location.search);
 
-    if (typeSelect.value) params.set('type', typeSelect.value);
-    else params.delete('type');
-
-    if (categorySelect.value) params.set('category', categorySelect.value);
+    if (categorySelect?.value) params.set('category', categorySelect.value);
     else params.delete('category');
 
-    if (traditionSelect.value) params.set('tradition', traditionSelect.value);
-    else params.delete('tradition');
-
-    if (citySelect.value) params.set('city', citySelect.value);
+    if (citySelect?.value) params.set('city', citySelect.value);
     else params.delete('city');
 
     const queryString = params.toString();
     window.location.href = '/events' + (queryString ? '?' + queryString : '');
   }
 
-  typeSelect?.addEventListener('change', applyFilters);
   categorySelect?.addEventListener('change', applyFilters);
-  traditionSelect?.addEventListener('change', applyFilters);
   citySelect?.addEventListener('change', applyFilters);
 </script>
 

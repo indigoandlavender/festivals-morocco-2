@@ -1,5 +1,29 @@
 import { google } from "googleapis";
 
+// =============================================================================
+// BUILD-TIME CACHE - Uses globalThis to persist across Astro page builds
+// =============================================================================
+declare global {
+  var __festivalsCache: {
+    siteSettings: any | null;
+    events: any[] | null;
+    legalPages: any[] | null;
+    sheetData: Map<string, any[]>;
+  } | undefined;
+}
+
+// Initialize global cache if it doesn't exist
+if (!globalThis.__festivalsCache) {
+  globalThis.__festivalsCache = {
+    siteSettings: null,
+    events: null,
+    legalPages: null,
+    sheetData: new Map(),
+  };
+}
+
+const cache = globalThis.__festivalsCache;
+
 const getGoogleSheetsClient = () => {
   const base64Creds = import.meta.env.GOOGLE_SERVICE_ACCOUNT_BASE64;
   if (!base64Creds) {
@@ -31,8 +55,14 @@ export interface LegalPage {
   href: string;
 }
 
-// Fetch data from Nexus shared database
+// Fetch data from Nexus shared database (with caching)
 export async function getNexusData(tabName: string): Promise<any[]> {
+  // Check cache first
+  const cacheKey = `nexus:${tabName}`;
+  if (cache.sheetData.has(cacheKey)) {
+    return cache.sheetData.get(cacheKey)!;
+  }
+
   try {
     const sheets = getGoogleSheetsClient();
 
@@ -42,25 +72,39 @@ export async function getNexusData(tabName: string): Promise<any[]> {
     });
 
     const rows = response.data.values || [];
-    if (rows.length === 0) return [];
+    if (rows.length === 0) {
+      cache.sheetData.set(cacheKey, []);
+      return [];
+    }
 
     const headers = rows[0];
-    return rows.slice(1).map((row) => {
+    const data = rows.slice(1).map((row) => {
       const obj: any = {};
       headers.forEach((header: string, index: number) => {
         obj[header] = row[index] || "";
       });
       return obj;
     });
+
+    cache.sheetData.set(cacheKey, data);
+    return data;
   } catch (error: any) {
     console.error(`Error fetching Nexus sheet "${tabName}":`, error.message);
+    cache.sheetData.set(cacheKey, []);
     return [];
   }
 }
 
-// Get legal pages from Nexus - filtered for content sites
+// Get legal pages from Nexus - filtered for content sites (with caching)
 export async function getLegalPages(): Promise<LegalPage[]> {
+  // Check cache first
+  if (cache.legalPages !== null) {
+    console.log("[Festivals] Legal pages (cached)");
+    return cache.legalPages;
+  }
+
   try {
+    console.log("[Festivals] Fetching legal pages from Nexus");
     const legalPages = await getNexusData("Nexus_Legal_Pages");
 
     // Get unique pages (sheet has multiple rows per page for sections)
@@ -86,10 +130,12 @@ export async function getLegalPages(): Promise<LegalPage[]> {
     }
 
     console.log("[Festivals] Legal pages from Nexus:", result.map(p => p.label));
-    return result.length > 0 ? result : getFallbackLegalPages();
+    cache.legalPages = result.length > 0 ? result : getFallbackLegalPages();
+    return cache.legalPages;
   } catch (error) {
     console.error("Could not fetch legal pages from Nexus:", error);
-    return getFallbackLegalPages();
+    cache.legalPages = getFallbackLegalPages();
+    return cache.legalPages;
   }
 }
 
@@ -198,6 +244,12 @@ const DEFAULT_SETTINGS: SiteSettings = {
 
 // Fetch data from Festivals Morocco sheet
 export async function getSheetData(tabName: string): Promise<any[]> {
+  // Check cache first
+  const cacheKey = `sheet:${tabName}`;
+  if (cache.sheetData.has(cacheKey)) {
+    return cache.sheetData.get(cacheKey)!;
+  }
+
   try {
     const sheets = getGoogleSheetsClient();
 
@@ -207,49 +259,59 @@ export async function getSheetData(tabName: string): Promise<any[]> {
     });
 
     const rows = response.data.values || [];
-    if (rows.length === 0) return [];
+    if (rows.length === 0) {
+      cache.sheetData.set(cacheKey, []);
+      return [];
+    }
 
     const headers = rows[0];
-    return rows.slice(1).map((row) => {
+    const data = rows.slice(1).map((row) => {
       const obj: any = {};
       headers.forEach((header: string, index: number) => {
         obj[header] = row[index] || "";
       });
       return obj;
     });
+
+    cache.sheetData.set(cacheKey, data);
+    return data;
   } catch (error: any) {
     console.error(`Error fetching sheet "${tabName}":`, error.message);
+    cache.sheetData.set(cacheKey, []);
     return [];
   }
 }
 
-// Get site settings from Google Sheets
+// Get site settings from Google Sheets (with caching)
 // Sheet tab: Site_Settings with columns: key, value
 export async function getSiteSettings(): Promise<SiteSettings> {
+  // Check cache first
+  if (cache.siteSettings !== null) {
+    console.log("[Festivals] Site settings (cached)");
+    return cache.siteSettings;
+  }
+
   try {
     console.log("[Festivals] Fetching Site_Settings from sheet:", SHEET_ID);
     const rows = await getSheetData("Site_Settings");
     
-    console.log("[Festivals] Site_Settings rows returned:", rows.length);
-    
     if (rows.length === 0) {
       console.log("[Festivals] No Site_Settings found, using defaults");
+      cache.siteSettings = DEFAULT_SETTINGS;
       return DEFAULT_SETTINGS;
     }
     
     // Convert rows to key-value object
     const settings: Record<string, string> = {};
     for (const row of rows) {
-      console.log("[Festivals] Row:", row.key, "=", row.value?.substring?.(0, 50) || row.value);
       if (row.key && row.value !== undefined) {
         settings[row.key] = row.value;
       }
     }
     
-    console.log("[Festivals] Loaded site settings keys:", Object.keys(settings));
-    console.log("[Festivals] newsletter_background_image:", settings.newsletter_background_image?.substring(0, 60) || "(empty)");
+    console.log("[Festivals] Loaded", Object.keys(settings).length, "site settings");
     
-    return {
+    cache.siteSettings = {
       hero_image: settings.hero_image || DEFAULT_SETTINGS.hero_image,
       hero_title: settings.hero_title || DEFAULT_SETTINGS.hero_title,
       hero_subtitle: settings.hero_subtitle || DEFAULT_SETTINGS.hero_subtitle,
@@ -260,8 +322,10 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       site_name: settings.site_name || DEFAULT_SETTINGS.site_name,
       site_tagline: settings.site_tagline || DEFAULT_SETTINGS.site_tagline,
     };
+    return cache.siteSettings;
   } catch (error) {
     console.error("Error fetching site settings:", error);
+    cache.siteSettings = DEFAULT_SETTINGS;
     return DEFAULT_SETTINGS;
   }
 }
@@ -297,14 +361,19 @@ export interface SheetEvent {
 }
 
 export async function getSheetEvents(): Promise<SheetEvent[]> {
+  // Check cache first
+  if (cache.events !== null) {
+    console.log("[Festivals] Events (cached):", cache.events.length);
+    return cache.events;
+  }
+
   try {
     console.log("[Festivals] Fetching events from sheet:", SHEET_ID);
     const rows = await getSheetData("Festivals");
     
-    console.log("[Festivals] Events rows returned:", rows.length);
-    
     if (rows.length === 0) {
       console.log("[Festivals] No events found in sheet");
+      cache.events = [];
       return [];
     }
     
@@ -336,12 +405,13 @@ export async function getSheetEvents(): Promise<SheetEvent[]> {
         status: row.status || 'published',
       }));
     
-    console.log("[Festivals] Processed events:", events.length);
-    console.log("[Festivals] First event image:", events[0]?.image?.substring(0, 60) || "(no image)");
+    console.log("[Festivals] Processed", events.length, "events");
     
+    cache.events = events;
     return events;
   } catch (error) {
     console.error("Error fetching events from sheet:", error);
+    cache.events = [];
     return [];
   }
 }
