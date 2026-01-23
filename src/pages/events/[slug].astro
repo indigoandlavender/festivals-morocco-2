@@ -40,13 +40,16 @@ function formatDateRange(start: string, end?: string): string {
   return `${startStr} – ${endStr}`;
 }
 
-// Schema.org structured data
+// Schema.org structured data with geo
 const schemaOrg = {
   "@context": "https://schema.org",
   "@type": "Event",
+  "@id": `https://festivalsinmorocco.com/events/${event.slug}#event`,
   "name": event.title_en,
   "startDate": event.startDate,
   "endDate": event.endDate || event.startDate,
+  "eventStatus": "https://schema.org/EventScheduled",
+  "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
   "location": {
     "@type": "Place",
     "name": event.venue || event.city,
@@ -54,12 +57,112 @@ const schemaOrg = {
       "@type": "PostalAddress",
       "addressLocality": event.city,
       "addressRegion": event.region,
-      "addressCountry": "MA"
-    }
+      "addressCountry": "Morocco",
+      "addressCountryCode": "MA"
+    },
+    ...(event.lat && event.lng ? {
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": event.lat,
+        "longitude": event.lng
+      }
+    } : {})
   },
   "description": event.description_en,
-  "url": event.website,
-  "image": event.image,
+  "url": `https://festivalsinmorocco.com/events/${event.slug}`,
+  ...(event.image ? { "image": event.image } : {}),
+  ...(event.organizer ? {
+    "organizer": {
+      "@type": "Organization",
+      "name": event.organizer,
+      ...(event.website ? { "url": event.website } : {})
+    }
+  } : {}),
+  ...(event.price_isFree ? {
+    "isAccessibleForFree": true
+  } : event.price_min ? {
+    "offers": {
+      "@type": "Offer",
+      "price": event.price_min,
+      "priceCurrency": "MAD",
+      "availability": "https://schema.org/InStock",
+      ...(event.website ? { "url": event.website } : {})
+    }
+  } : {}),
+  "inLanguage": ["ar", "fr", "en"]
+};
+
+// Breadcrumb schema
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://festivalsinmorocco.com"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Events",
+      "item": "https://festivalsinmorocco.com/events"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": event.title_en,
+      "item": `https://festivalsinmorocco.com/events/${event.slug}`
+    }
+  ]
+};
+
+// Article schema for AI citation - makes content citable by LLMs
+const articleSchema = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "@id": `https://festivalsinmorocco.com/events/${event.slug}#article`,
+  "headline": event.title_en,
+  "description": event.description_en,
+  "url": `https://festivalsinmorocco.com/events/${event.slug}`,
+  ...(event.image ? { 
+    "image": {
+      "@type": "ImageObject",
+      "url": event.image
+    }
+  } : {}),
+  "author": {
+    "@type": "Organization",
+    "name": "Festivals in Morocco",
+    "url": "https://festivalsinmorocco.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Slow Morocco",
+    "url": "https://slowmorocco.com",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://festivalsinmorocco.com/favicon.svg"
+    }
+  },
+  "datePublished": "2024-01-01",
+  "dateModified": new Date().toISOString().split('T')[0],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": `https://festivalsinmorocco.com/events/${event.slug}`
+  },
+  "about": {
+    "@type": "Event",
+    "@id": `https://festivalsinmorocco.com/events/${event.slug}#event`
+  },
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [".event-description", ".hero-content h1", ".event-meta"]
+  },
+  "inLanguage": "en",
+  "isAccessibleForFree": true,
+  "keywords": [event.category, event.city, event.region, "Morocco", "festival", ...event.tags].filter(Boolean).join(", ")
 };
 ---
 
@@ -69,6 +172,7 @@ const schemaOrg = {
   image={event.image}
 >
   <script type="application/ld+json" set:html={JSON.stringify(schemaOrg)} />
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
 
   <!-- HERO -->
   <section class="event-hero" slot="hero">

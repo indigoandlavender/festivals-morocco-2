@@ -59,9 +59,40 @@ function formatDateRange(start: string, end?: string): string {
   const endStr = endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   return `${startStr} – ${endStr}`;
 }
+
+// Homepage structured data - ItemList of upcoming events
+const eventListSchema = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Upcoming Events in Morocco",
+  "description": "Festivals and cultural events happening in Morocco",
+  "numberOfItems": Math.min(featured.length, 10),
+  "itemListElement": featured.slice(0, 10).map((event, index) => ({
+    "@type": "ListItem",
+    "position": index + 1,
+    "item": {
+      "@type": "Event",
+      "name": event.title_en,
+      "startDate": event.startDate,
+      "url": `https://festivalsinmorocco.com/events/${event.slug}`,
+      "location": {
+        "@type": "Place",
+        "name": event.city,
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": event.city,
+          "addressRegion": event.region,
+          "addressCountry": "Morocco"
+        }
+      },
+      ...(event.image ? { "image": event.image } : {})
+    }
+  }))
+};
 ---
 
 <Base title="Festivals in Morocco - Cultural Events & Celebrations" settings={settings}>
+  <script type="application/ld+json" set:html={JSON.stringify(eventListSchema)} />
   <!-- HERO SECTION -->
   <section class="hero" slot="hero">
     {settings.hero_image ? (

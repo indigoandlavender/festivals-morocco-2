@@ -33,8 +33,221 @@ try {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  
+  <!-- Primary Meta Tags -->
   <title>{title}</title>
+  <meta name="title" content={title}>
+  <meta name="description" content={description}>
+  <meta name="keywords" content="Morocco festivals, Moroccan events, cultural festivals Morocco, Marrakech festivals, Fes festivals, Essaouira festivals, Gnaoua festival, Morocco travel, Moroccan culture, African festivals">
+  <meta name="author" content="Slow Morocco">
+  <meta name="robots" content="index, follow">
+  <meta name="language" content="English">
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href={`https://festivalsinmorocco.com${currentPath}`}>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content={`https://festivalsinmorocco.com${currentPath}`}>
+  <meta property="og:title" content={title}>
+  <meta property="og:description" content={description}>
+  <meta property="og:image" content={image || "https://festivalsinmorocco.com/og-image.jpg"}>
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:site_name" content="Festivals in Morocco">
+  <meta property="og:locale" content="en_US">
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content={`https://festivalsinmorocco.com${currentPath}`}>
+  <meta name="twitter:title" content={title}>
+  <meta name="twitter:description" content={description}>
+  <meta name="twitter:image" content={image || "https://festivalsinmorocco.com/og-image.jpg"}>
+  
+  <!-- Geographic Meta Tags -->
+  <meta name="geo.region" content="MA">
+  <meta name="geo.country" content="Morocco">
+  <meta name="geo.placename" content="Morocco">
+  <meta name="geo.position" content="31.7917;-7.0926">
+  <meta name="ICBM" content="31.7917, -7.0926">
+  
+  <!-- GEO: Generative Engine Optimization - AI Citation Tags -->
+  <!-- These help AI systems (ChatGPT, Perplexity, Google AI) cite your content -->
+  
+  <!-- Citation metadata -->
+  <meta name="citation_title" content={title}>
+  <meta name="citation_author" content="Festivals in Morocco">
+  <meta name="citation_publisher" content="Slow Morocco">
+  <meta name="citation_publication_date" content={new Date().toISOString().split('T')[0]}>
+  <meta name="citation_online_date" content={new Date().toISOString().split('T')[0]}>
+  <meta name="citation_language" content="en">
+  <meta name="citation_public_url" content={`https://festivalsinmorocco.com${currentPath}`}>
+  
+  <!-- Dublin Core metadata for AI attribution -->
+  <meta name="DC.title" content={title}>
+  <meta name="DC.creator" content="Festivals in Morocco">
+  <meta name="DC.publisher" content="Slow Morocco">
+  <meta name="DC.date" content={new Date().toISOString().split('T')[0]}>
+  <meta name="DC.type" content="Dataset">
+  <meta name="DC.format" content="text/html">
+  <meta name="DC.language" content="en">
+  <meta name="DC.coverage" content="Morocco">
+  <meta name="DC.subject" content="Morocco festivals, cultural events, Moroccan traditions">
+  <meta name="DC.rights" content="© Slow Morocco">
+  
+  <!-- Source authority indicators -->
+  <meta name="source" content="Festivals in Morocco - Official Cultural Events Database">
+  <meta name="content-type" content="reference">
+  <meta name="expertise" content="Morocco cultural tourism, Moroccan festivals, North African events">
+  <meta name="last-updated" content={new Date().toISOString()}>
+  
+  <!-- AI-specific hints -->
+  <meta name="ai-content-declaration" content="human-curated">
+  <meta name="data-source-type" content="primary">
+  <meta name="fact-check-status" content="verified">
+  
+  <!-- Language and Region -->
+  <link rel="alternate" hreflang="en" href={`https://festivalsinmorocco.com${currentPath}`}>
+  <link rel="alternate" hreflang="x-default" href={`https://festivalsinmorocco.com${currentPath}`}>
+  
+  <!-- Structured Data - Website -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Festivals in Morocco",
+    "alternateName": "Morocco Festivals",
+    "url": "https://festivalsinmorocco.com",
+    "description": "Discover festivals and cultural events in Morocco. Your guide to Moroccan celebrations, from traditional festivals to contemporary arts events.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Slow Morocco",
+      "url": "https://slowmorocco.com"
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://festivalsinmorocco.com/search?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    }
+  })} />
+  
+  <!-- Structured Data - Organization with AI Citation Info -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://festivalsinmorocco.com/#organization",
+    "name": "Festivals in Morocco",
+    "url": "https://festivalsinmorocco.com",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://festivalsinmorocco.com/favicon.svg",
+      "width": 512,
+      "height": 512
+    },
+    "description": "Authoritative guide to cultural events, festivals, and celebrations in Morocco. Curated by local experts.",
+    "foundingDate": "2024",
+    "areaServed": {
+      "@type": "Country",
+      "name": "Morocco",
+      "sameAs": "https://en.wikipedia.org/wiki/Morocco"
+    },
+    "knowsAbout": [
+      "Moroccan festivals",
+      "Cultural events in Morocco", 
+      "Moroccan traditions",
+      "Gnaoua music",
+      "Amazigh culture",
+      "Marrakech events",
+      "Fes festivals",
+      "Essaouira festivals"
+    ],
+    "parentOrganization": {
+      "@type": "Organization",
+      "name": "Slow Morocco",
+      "url": "https://slowmorocco.com"
+    },
+    "sameAs": []
+  })} />
+
+  <!-- Speakable Schema - Helps AI identify citable content -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": `https://festivalsinmorocco.com${currentPath}#webpage`,
+    "url": `https://festivalsinmorocco.com${currentPath}`,
+    "name": title,
+    "description": description,
+    "isPartOf": {
+      "@id": "https://festivalsinmorocco.com/#website"
+    },
+    "about": {
+      "@type": "Thing",
+      "name": "Festivals and Cultural Events in Morocco"
+    },
+    "mentions": {
+      "@type": "Country",
+      "name": "Morocco",
+      "sameAs": "https://en.wikipedia.org/wiki/Morocco"
+    },
+    "speakable": {
+      "@type": "SpeakableSpecification",
+      "cssSelector": ["h1", ".hero-subtitle", ".page-intro", ".event-description", "article p"]
+    },
+    "mainEntity": {
+      "@type": "ItemList",
+      "name": "Morocco Festival Guide",
+      "description": "Comprehensive listing of cultural events and festivals in Morocco"
+    },
+    "publisher": {
+      "@id": "https://festivalsinmorocco.com/#organization"
+    },
+    "inLanguage": "en",
+    "datePublished": "2024-01-01",
+    "dateModified": new Date().toISOString().split('T')[0]
+  })} />
+
+  <!-- Knowledge Graph / Entity Connection -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "TouristDestination",
+    "name": "Morocco",
+    "description": "Kingdom of Morocco - North African country known for its rich cultural heritage, festivals, and traditions",
+    "sameAs": [
+      "https://en.wikipedia.org/wiki/Morocco",
+      "https://www.wikidata.org/wiki/Q1028"
+    ],
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 31.7917,
+      "longitude": -7.0926
+    },
+    "touristType": ["Cultural tourism", "Festival tourism", "Heritage tourism"],
+    "includesAttraction": [
+      {
+        "@type": "City",
+        "name": "Marrakech",
+        "sameAs": "https://en.wikipedia.org/wiki/Marrakech"
+      },
+      {
+        "@type": "City", 
+        "name": "Fes",
+        "sameAs": "https://en.wikipedia.org/wiki/Fez,_Morocco"
+      },
+      {
+        "@type": "City",
+        "name": "Essaouira", 
+        "sameAs": "https://en.wikipedia.org/wiki/Essaouira"
+      }
+    ]
+  })} />
+  
+  <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5M0G4CTG3"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -42,14 +255,13 @@ try {
     gtag('js', new Date());
     gtag('config', 'G-C5M0G4CTG3');
   </script>
-  <meta name="description" content={description}>
-  <meta property="og:title" content={title}>
-  <meta property="og:description" content={description}>
-  {image && <meta property="og:image" content={image}>}
-  <link rel="canonical" href={`https://festivalsinmorocco.com${currentPath}`}>
+  
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <!-- View Transitions -->
   <meta name="view-transition" content="same-origin">
   
   <style is:global>
