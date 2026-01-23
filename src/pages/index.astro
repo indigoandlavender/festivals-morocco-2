@@ -133,6 +133,44 @@ const eventListSchema = {
     </div>
   </section>
 
+  <!-- HORIZONTAL TIMELINE - Right below hero -->
+  {upcoming.length > 0 && (
+    <section class="timeline-section">
+      <div class="timeline-header">
+        <span class="timeline-label">Coming Up</span>
+        <a href="/events" class="timeline-view-all">View all →</a>
+      </div>
+      <div class="timeline-wrapper">
+        <div class="timeline-scroll" id="timeline">
+          {upcoming.map(event => {
+            const startDate = event.startDate ? new Date(event.startDate) : null;
+            return (
+              <a href={`/events/${event.slug}`} class="timeline-card">
+                <div class="tc-date">
+                  {startDate && (
+                    <>
+                      <span class="tc-day">{startDate.getDate()}</span>
+                      <span class="tc-month">{startDate.toLocaleDateString('en-GB', { month: 'short' })}</span>
+                    </>
+                  )}
+                </div>
+                <div class="tc-content">
+                  <h4>{event.title_en}</h4>
+                  <p class="tc-location">{event.city}</p>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+        <button class="timeline-arrow" id="timeline-next" aria-label="Scroll right">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+  )}
+
   <!-- FILTER PILLS -->
   <section class="filter-section">
     <div class="filter-pills">
@@ -192,73 +230,6 @@ const eventListSchema = {
       })}
     </div>
   </section>
-
-  <!-- TIMELINE VIEW -->
-  {months.length > 0 && (
-    <section class="timeline-section section">
-      <div class="section-header">
-        <div>
-          <h2>Coming Up</h2>
-          <p class="subtitle">Browse events by month</p>
-        </div>
-        <div class="timeline-nav">
-          <button class="timeline-arrow prev" id="timeline-prev" aria-label="Previous months">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m15 18-6-6 6-6"/>
-            </svg>
-          </button>
-          <button class="timeline-arrow next" id="timeline-next" aria-label="Next months">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m9 18 6-6-6-6"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="timeline-container" id="timeline">
-        <div class="timeline-track">
-          {months.map(monthKey => {
-            const [year, month] = monthKey.split('-');
-            const monthDate = new Date(parseInt(year), parseInt(month) - 1);
-            const monthName = monthDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-            const events = eventsByMonth[monthKey];
-
-            return (
-              <div class="timeline-month">
-                <h3 class="month-label">{monthName}</h3>
-                <div class="month-events">
-                  {events.slice(0, 3).map(event => {
-                    const startDate = event.startDate ? new Date(event.startDate) : null;
-                    return (
-                      <a href={`/events/${event.slug}`} class="timeline-event card">
-                        <div class="timeline-event-date">
-                          {startDate && (
-                            <>
-                              <span class="te-day">{startDate.getDate()}</span>
-                              <span class="te-dow">{startDate.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
-                            </>
-                          )}
-                        </div>
-                        <div class="timeline-event-info">
-                          <h4>{event.title_en}</h4>
-                          <p>{event.city || event.region}</p>
-                        </div>
-                      </a>
-                    );
-                  })}
-                  {events.length > 3 && (
-                    <a href={`/events?month=${monthKey}`} class="more-link">
-                      +{events.length - 3} more
-                    </a>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  )}
 
   <!-- TWO COLUMN: TRADITIONS + CITIES -->
   <div class="two-col section">
@@ -351,21 +322,25 @@ const eventListSchema = {
 </Base>
 
 <script>
-  // Timeline scroll
+  // Timeline scroll with single arrow
   const timeline = document.getElementById('timeline');
-  const prevBtn = document.getElementById('timeline-prev');
   const nextBtn = document.getElementById('timeline-next');
   
-  if (timeline && prevBtn && nextBtn) {
-    const scrollAmount = 320;
-    
-    prevBtn.addEventListener('click', () => {
-      timeline.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-    });
+  if (timeline && nextBtn) {
+    const scrollAmount = 280;
     
     nextBtn.addEventListener('click', () => {
       timeline.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     });
+
+    // Hide arrow when scrolled to end
+    const updateArrowVisibility = () => {
+      const maxScroll = timeline.scrollWidth - timeline.clientWidth;
+      nextBtn.style.opacity = timeline.scrollLeft >= maxScroll - 10 ? '0' : '1';
+    };
+
+    timeline.addEventListener('scroll', updateArrowVisibility);
+    updateArrowVisibility();
   }
 </script>
 
@@ -703,20 +678,125 @@ const eventListSchema = {
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     TIMELINE
+     HORIZONTAL TIMELINE (Below Hero)
      ═══════════════════════════════════════════════════════════════ */
-  .timeline-section .section-header {
-    align-items: center;
+  .timeline-section {
+    background: var(--bg-warm);
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--border);
   }
 
-  .timeline-nav {
+  .timeline-header {
     display: flex;
-    gap: 0.5rem;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1280px;
+    margin: 0 auto 1rem;
+    padding: 0 1.5rem;
+  }
+
+  .timeline-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  .timeline-view-all {
+    font-size: 0.8rem;
+    color: var(--accent);
+  }
+
+  .timeline-view-all:hover {
+    text-decoration: underline;
+  }
+
+  .timeline-wrapper {
+    position: relative;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .timeline-scroll {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    padding-right: 3rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .timeline-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .timeline-card {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-width: 200px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .timeline-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  .tc-date {
+    text-align: center;
+    min-width: 38px;
+    padding-right: 0.875rem;
+    border-right: 1px solid var(--border);
+  }
+
+  .tc-day {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .tc-month {
+    display: block;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    margin-top: 0.2rem;
+  }
+
+  .tc-content h4 {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.15rem;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .tc-location {
+    font-size: 0.75rem;
+    color: var(--text-muted);
   }
 
   .timeline-arrow {
-    width: 40px;
-    height: 40px;
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
     border: 1px solid var(--border);
     border-radius: 50%;
     background: var(--bg-card);
@@ -725,92 +805,15 @@ const eventListSchema = {
     justify-content: center;
     cursor: pointer;
     color: var(--text-muted);
-    transition: all var(--transition-fast);
+    transition: all 0.2s;
+    box-shadow: -4px 0 12px rgba(0,0,0,0.06);
+    z-index: 2;
   }
 
   .timeline-arrow:hover {
     border-color: var(--accent);
     color: var(--accent);
-  }
-
-  .timeline-container {
-    overflow-x: auto;
-    margin: 0 -1.5rem;
-    padding: 0 1.5rem;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .timeline-container::-webkit-scrollbar {
-    display: none;
-  }
-
-  .timeline-track {
-    display: flex;
-    gap: 2rem;
-    padding-bottom: 1rem;
-  }
-
-  .timeline-month {
-    flex: 0 0 300px;
-  }
-
-  .month-label {
-    font-size: 1rem;
-    color: var(--text);
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--accent);
-    display: inline-block;
-  }
-
-  .month-events {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .timeline-event {
-    display: flex;
-    gap: 1rem;
-    padding: 1rem;
-    align-items: flex-start;
-  }
-
-  .timeline-event-date {
-    text-align: center;
-    min-width: 40px;
-  }
-
-  .te-day {
-    display: block;
-    font-family: var(--font-serif);
-    font-size: 1.25rem;
-    color: var(--accent);
-  }
-
-  .te-dow {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    color: var(--text-muted);
-  }
-
-  .timeline-event-info h4 {
-    font-family: var(--font-sans);
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-bottom: 0.25rem;
-  }
-
-  .timeline-event-info p {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-  }
-
-  .more-link {
-    font-size: 0.8rem;
-    color: var(--accent);
-    padding-left: 1rem;
+    background: var(--bg);
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -1182,31 +1185,41 @@ const eventListSchema = {
     }
 
     /* Timeline */
-    .timeline-section .section-header {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
+    .timeline-section {
+      padding: 1rem 0;
     }
 
-    .timeline-container {
-      margin: 0 -1rem;
+    .timeline-header {
+      padding: 0 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .timeline-wrapper {
       padding: 0 1rem;
     }
 
-    .timeline-month {
-      min-width: 260px;
+    .timeline-scroll {
+      padding-right: 2.5rem;
     }
 
-    .month-label {
-      font-size: 0.9rem;
+    .timeline-card {
+      min-width: 180px;
+      padding: 0.625rem 0.875rem;
+      gap: 0.75rem;
     }
 
-    .timeline-event {
-      padding: 0.75rem;
+    .tc-day {
+      font-size: 1.1rem;
     }
 
-    .timeline-event h4 {
-      font-size: 0.9rem;
+    .tc-content h4 {
+      font-size: 0.8rem;
+    }
+
+    .timeline-arrow {
+      width: 32px;
+      height: 32px;
+      right: 0.5rem;
     }
 
     /* Cities grid */
