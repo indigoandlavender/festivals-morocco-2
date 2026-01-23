@@ -5,11 +5,10 @@ interface Props {
   title: string;
   description?: string;
   image?: string;
-  hideNewsletter?: boolean;
   settings?: SiteSettings;
 }
 
-const { title, description = "Discover festivals and music events in Morocco", image, hideNewsletter = false, settings: passedSettings } = Astro.props;
+const { title, description = "Discover festivals and cultural events in Morocco", image, settings: passedSettings } = Astro.props;
 const currentPath = Astro.url.pathname;
 
 // Use passed settings or fetch defaults
@@ -630,18 +629,6 @@ try {
   </main>
 
   <footer>
-    {!hideNewsletter && (
-      <div class:list={["footer-newsletter", { "no-image": !settings.newsletter_background_image }]} style={settings.newsletter_background_image ? `background: url(${settings.newsletter_background_image}) center/cover no-repeat;` : ''}>
-        <div class="container">
-          <h3>{settings.newsletter_title}</h3>
-          <p>{settings.newsletter_description}</p>
-          <form class="newsletter-form" action="/api/newsletter" method="POST">
-            <input type="email" name="email" placeholder="your@email.com" required>
-            <button type="submit">Subscribe</button>
-          </form>
-        </div>
-      </div>
-    )}
     <div class="footer-nav">
       <div class="container">
         <a href="/events">Events</a>

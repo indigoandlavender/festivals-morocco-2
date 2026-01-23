@@ -6,10 +6,10 @@ import Base from '../layouts/Base.astro';
   <div class="submit-page">
     <header class="page-header">
       <h1>Submit an Event</h1>
-      <p class="page-intro">Know of a festival, concert, or cultural event happening in Morocco? Share it with us and help others discover Morocco's vibrant music scene.</p>
+      <p class="page-intro">Know of a festival, concert, or cultural event happening in Morocco? Share it with us and help others discover Morocco's vibrant cultural scene.</p>
     </header>
 
-    <form class="submit-form" action="/api/submit-event" method="POST" id="submit-form">
+    <form class="submit-form" action="mailto:happ@indigoandlavender.love" method="POST" enctype="text/plain" id="submit-form">
       <!-- Event Details -->
       <section class="form-section">
         <h2>Event Details</h2>
@@ -29,9 +29,11 @@ import Base from '../layouts/Base.astro';
             <select name="event_type" id="event_type" required>
               <option value="" disabled selected></option>
               <option value="festival">Festival</option>
-              <option value="moussem">Moussem</option>
               <option value="concert">Concert</option>
+              <option value="art">Art Exhibition</option>
+              <option value="heritage">Heritage Event</option>
               <option value="cultural">Cultural Event</option>
+              <option value="sports">Sports Event</option>
               <option value="other">Other</option>
             </select>
             <label for="event_type">Event Type *</label>
@@ -103,48 +105,48 @@ import Base from '../layouts/Base.astro';
         </div>
       </section>
 
-      <!-- Music & Traditions -->
+      <!-- Traditions & Tags -->
       <section class="form-section">
-        <h2>Music & Traditions</h2>
+        <h2>Traditions & Tags</h2>
         
         <div class="checkbox-group">
-          <p class="checkbox-label">Featured traditions (select all that apply)</p>
+          <p class="checkbox-label">Featured traditions or themes (select all that apply)</p>
           <div class="checkbox-grid">
             <label class="checkbox">
-              <input type="checkbox" name="traditions" value="gnawa">
-              <span>Gnawa</span>
+              <input type="checkbox" name="traditions" value="amazigh">
+              <span>Amazigh</span>
             </label>
             <label class="checkbox">
               <input type="checkbox" name="traditions" value="andalusi">
               <span>Andalusi</span>
             </label>
             <label class="checkbox">
-              <input type="checkbox" name="traditions" value="amazigh">
-              <span>Amazigh</span>
+              <input type="checkbox" name="traditions" value="gnawa">
+              <span>Gnawa</span>
             </label>
             <label class="checkbox">
-              <input type="checkbox" name="traditions" value="sufi">
-              <span>Sufi</span>
+              <input type="checkbox" name="traditions" value="film">
+              <span>Film</span>
             </label>
             <label class="checkbox">
-              <input type="checkbox" name="traditions" value="aita">
-              <span>Aita</span>
+              <input type="checkbox" name="traditions" value="visual-arts">
+              <span>Visual Arts</span>
             </label>
             <label class="checkbox">
-              <input type="checkbox" name="traditions" value="chaabi">
-              <span>Chaabi</span>
+              <input type="checkbox" name="traditions" value="crafts">
+              <span>Traditional Crafts</span>
             </label>
             <label class="checkbox">
-              <input type="checkbox" name="traditions" value="rai">
-              <span>Raï</span>
+              <input type="checkbox" name="traditions" value="food">
+              <span>Food & Culinary</span>
             </label>
             <label class="checkbox">
-              <input type="checkbox" name="traditions" value="jazz">
-              <span>Jazz</span>
+              <input type="checkbox" name="traditions" value="sports">
+              <span>Sports</span>
             </label>
             <label class="checkbox">
-              <input type="checkbox" name="traditions" value="world">
-              <span>World Music</span>
+              <input type="checkbox" name="traditions" value="contemporary">
+              <span>Contemporary</span>
             </label>
             <label class="checkbox">
               <input type="checkbox" name="traditions" value="other">
@@ -155,7 +157,7 @@ import Base from '../layouts/Base.astro';
 
         <div class="field">
           <input type="text" name="artists" id="artists" placeholder=" ">
-          <label for="artists">Featured Artists (comma-separated)</label>
+          <label for="artists">Featured Artists / Participants (comma-separated)</label>
         </div>
       </section>
 
@@ -237,7 +239,7 @@ import Base from '../layouts/Base.astro';
   .submit-page {
     max-width: 680px;
     margin: 0 auto;
-    padding: 2rem 0 4rem;
+    padding: 6rem 1.5rem 4rem;
   }
 
   .page-header {

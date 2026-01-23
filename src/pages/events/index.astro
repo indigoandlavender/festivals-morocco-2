@@ -61,7 +61,7 @@ function formatDateRange(start: string, end?: string): string {
 <Base title="Events - Festivals in Morocco">
   <div class="page-header">
     <h1>Events</h1>
-    <p class="subtitle">{events.length} music events in Morocco</p>
+    <p class="subtitle">{events.length} cultural events in Morocco</p>
   </div>
 
   <div class="filters">
@@ -83,7 +83,6 @@ function formatDateRange(start: string, end?: string): string {
       <select name="category" id="category-filter">
         <option value="">All Categories</option>
         <option value="festival" selected={categoryFilter === 'festival'}>Festivals</option>
-        <option value="moussem" selected={categoryFilter === 'moussem'}>Moussems</option>
         <option value="concert" selected={categoryFilter === 'concert'}>Concerts</option>
         <option value="heritage" selected={categoryFilter === 'heritage'}>Heritage</option>
         <option value="cultural" selected={categoryFilter === 'cultural'}>Cultural</option>

@@ -61,7 +61,7 @@ function formatDateRange(start: string, end?: string): string {
 }
 ---
 
-<Base title="Festivals in Morocco - Music Events, Concerts & Cultural Celebrations" settings={settings}>
+<Base title="Festivals in Morocco - Cultural Events & Celebrations" settings={settings}>
   <!-- HERO SECTION -->
   <section class="hero" slot="hero">
     {settings.hero_image ? (
@@ -92,7 +92,7 @@ function formatDateRange(start: string, end?: string): string {
         </div>
         <div class="stat">
           <span class="stat-number">{traditions.length}</span>
-          <span class="stat-label">Music Traditions</span>
+          <span class="stat-label">Traditions</span>
         </div>
         <div class="stat">
           <span class="stat-number">{cities.length}+</span>
@@ -106,11 +106,10 @@ function formatDateRange(start: string, end?: string): string {
   <section class="filter-section">
     <div class="filter-pills">
       <a href="/events" class="pill active">All Events</a>
-      <a href="/events?type=festival" class="pill">Festivals</a>
-      <a href="/events?type=moussem" class="pill">Moussems</a>
-      <a href="/events?type=concert" class="pill">Concerts</a>
-      <a href="/events?category=rooted" class="pill pill-rooted">Rooted</a>
-      <a href="/events?category=hybrid" class="pill pill-hybrid">Contemporary</a>
+      <a href="/events?category=festival" class="pill">Festivals</a>
+      <a href="/events?category=concert" class="pill">Concerts</a>
+      <a href="/events?category=art" class="pill">Art</a>
+      <a href="/events?category=heritage" class="pill">Heritage</a>
     </div>
   </section>
 
@@ -235,8 +234,8 @@ function formatDateRange(start: string, end?: string): string {
     <section class="traditions-home">
       <div class="section-header">
         <div>
-          <h2>Music Traditions</h2>
-          <p class="subtitle">Ancestral sounds, living practice</p>
+          <h2>Cultural Traditions</h2>
+          <p class="subtitle">Living heritage, timeless practice</p>
         </div>
         <a href="/traditions" class="view-all">Explore all</a>
       </div>

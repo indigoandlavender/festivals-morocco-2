@@ -1,17 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Guembri - traditional Gnawa instrument -->
-  <!-- Body (rectangular resonator covered in camel skin) -->
-  <rect x="10" y="18" width="12" height="10" rx="1" fill="#4A6259"/>
-  <!-- Sound hole -->
-  <circle cx="16" cy="23" r="2" fill="#2F403A"/>
-  <!-- Neck -->
-  <rect x="14.5" y="4" width="3" height="15" rx="0.5" fill="#4A6259"/>
-  <!-- Tuning pegs -->
-  <rect x="12" y="4" width="2" height="1" rx="0.5" fill="#3D524A"/>
-  <rect x="18" y="4" width="2" height="1" rx="0.5" fill="#3D524A"/>
-  <rect x="12" y="6" width="2" height="1" rx="0.5" fill="#3D524A"/>
-  <!-- Strings -->
-  <line x1="14" y1="8" x2="14" y2="26" stroke="#8A7355" stroke-width="0.5"/>
-  <line x1="16" y1="8" x2="16" y2="26" stroke="#8A7355" stroke-width="0.5"/>
-  <line x1="18" y1="8" x2="18" y2="26" stroke="#8A7355" stroke-width="0.5"/>
+  <!-- Moroccan 8-pointed star in terracotta -->
+  <g transform="translate(16, 16)">
+    <!-- Outer star -->
+    <polygon points="0,-14 3,-5 12,-5 5,1 7,10 0,5 -7,10 -5,1 -12,-5 -3,-5" fill="#C75B39"/>
+    <!-- Inner star rotated 45deg -->
+    <polygon points="0,-10 2,-4 8,-4 4,0 5,7 0,4 -5,7 -4,0 -8,-4 -2,-4" fill="#B8705B" transform="rotate(22.5)"/>
+    <!-- Center circle -->
+    <circle cx="0" cy="0" r="3" fill="#D4846A"/>
+  </g>
 </svg>

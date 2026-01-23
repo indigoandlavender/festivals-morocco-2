@@ -232,14 +232,14 @@ export interface SiteSettings {
 
 const DEFAULT_SETTINGS: SiteSettings = {
   hero_image: '',
-  hero_title: 'Music lives here',
-  hero_subtitle: 'From Gnawa trance ceremonies to world-class festivals — discover Morocco\'s living musical traditions',
+  hero_title: 'Culture lives here',
+  hero_subtitle: 'From ancient festivals to contemporary celebrations — discover Morocco\'s vibrant cultural traditions',
   hero_label: 'Festivals in Morocco',
-  newsletter_title: 'Stay in the rhythm',
-  newsletter_description: 'Festivals, concerts, and cultural moments — delivered when they matter.',
+  newsletter_title: 'Stay connected',
+  newsletter_description: 'Festivals, events, and cultural moments — delivered when they matter.',
   newsletter_background_image: '',
   site_name: 'Festivals in Morocco',
-  site_tagline: 'Discover festivals and music events in Morocco',
+  site_tagline: 'Discover festivals and cultural events in Morocco',
 };
 
 // Fetch data from Festivals Morocco sheet

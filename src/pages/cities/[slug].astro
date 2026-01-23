@@ -40,7 +40,7 @@ const topTraditions = [...traditionCounts.entries()]
   .filter(Boolean);
 ---
 
-<Base title={`${city.name} Events - Festivals in Morocco`} description={`Music events and festivals in ${city.name}, Morocco`}>
+<Base title={`${city.name} Events - Festivals in Morocco`} description={`Cultural events and festivals in ${city.name}, Morocco`}>
   <nav class="breadcrumb">
     <a href="/">Home</a>
     <span>/</span>
@@ -52,7 +52,7 @@ const topTraditions = [...traditionCounts.entries()]
   <div class="page-header">
     <h1>Events in {city.name}</h1>
     <p class="region">{city.region}, Morocco</p>
-    <p class="subtitle">{events.length} music event{events.length !== 1 ? 's' : ''}</p>
+    <p class="subtitle">{events.length} cultural event{events.length !== 1 ? 's' : ''}</p>
   </div>
 
   {topTraditions.length > 0 && (
