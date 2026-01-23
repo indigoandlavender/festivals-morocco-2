@@ -4,9 +4,6 @@
 User-agent: *
 Allow: /
 
-# Sitemaps
-Sitemap: https://festivalsinmorocco.com/sitemap-index.xml
-
 # AI/LLM Information (GEO - Generative Engine Optimization)
 # For AI crawlers seeking content context
 # llms.txt: https://festivalsinmorocco.com/llms.txt
