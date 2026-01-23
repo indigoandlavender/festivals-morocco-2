@@ -38,9 +38,36 @@ const topTraditions = [...traditionCounts.entries()]
   .sort((a, b) => b[1] - a[1])
   .map(([tid]) => MUSIC_TRADITIONS[tid])
   .filter(Boolean);
+
+// Generate definition text for AI citation
+const eventNames = events.slice(0, 3).map(e => e.name).join(', ');
+const definitionText = `${city.name} is a city in ${city.region}, Morocco that hosts ${events.length} cultural events and festivals. Major events include ${eventNames || 'various cultural celebrations'}. The city is known for ${topTraditions.slice(0, 3).map(t => t.name).join(', ') || 'its cultural heritage'}.`;
+
+// Place schema for AI citation
+const placeSchema = {
+  "@context": "https://schema.org",
+  "@type": "City",
+  "name": city.name,
+  "containedIn": {
+    "@type": "AdministrativeArea",
+    "name": city.region
+  },
+  "containedInPlace": {
+    "@type": "Country",
+    "name": "Morocco"
+  },
+  "description": definitionText,
+  "event": events.slice(0, 10).map(e => ({
+    "@type": "Festival",
+    "name": e.name,
+    "url": `https://festivalsinmorocco.com/events/${e.id}`
+  }))
+};
 ---
 
-<Base title={`${city.name} Events - Festivals in Morocco`} description={`Cultural events and festivals in ${city.name}, Morocco`}>
+<Base title={`${city.name} Events - Festivals in Morocco`} description={definitionText}>
+  <script type="application/ld+json" set:html={JSON.stringify(placeSchema)} />
+  
   <nav class="breadcrumb">
     <a href="/">Home</a>
     <span>/</span>
@@ -53,6 +80,19 @@ const topTraditions = [...traditionCounts.entries()]
     <h1>Events in {city.name}</h1>
     <p class="region">{city.region}, Morocco</p>
     <p class="subtitle">{events.length} cultural event{events.length !== 1 ? 's' : ''}</p>
+  </div>
+
+  <!-- DEFINITION BLOCK - Critical for AI citation -->
+  <div class="definition-block">
+    <h2>About {city.name} Festivals</h2>
+    <p class="definition-text">{definitionText}</p>
+    {events.length > 0 && (
+      <p class="cross-links">
+        {city.name} hosts several major festivals, including {events.slice(0, 4).map((e, i) => (
+          <><a href={`/events/${e.id}`}>{e.name}</a>{i < Math.min(events.length - 1, 3) ? ', ' : ''}</>
+        ))}{events.length > 4 ? `, and ${events.length - 4} more events` : ''}.
+      </p>
+    )}
   </div>
 
   {topTraditions.length > 0 && (
@@ -149,6 +189,42 @@ const topTraditions = [...traditionCounts.entries()]
   .subtitle {
     color: var(--accent);
     font-weight: 500;
+  }
+
+  /* Definition Block - Critical for AI citation */
+  .definition-block {
+    padding: 1.5rem;
+    background: var(--bg-warm);
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border-left: 4px solid var(--accent);
+  }
+
+  .definition-block h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+    color: var(--text);
+  }
+
+  .definition-text {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+  }
+
+  .cross-links {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .cross-links a {
+    color: var(--accent);
+  }
+
+  .cross-links a:hover {
+    text-decoration: underline;
   }
 
   .city-traditions {

@@ -40,12 +40,37 @@ function formatDateRange(start: string, end?: string): string {
   return `${startStr} – ${endStr}`;
 }
 
-// Schema.org structured data with geo
+// Get month name for definition
+const monthName = startDate ? startDate.toLocaleDateString('en-GB', { month: 'long' }) : 'annually';
+
+// Category label mapping for definitions
+const categoryLabels: Record<string, string> = {
+  'festival': 'cultural festival',
+  'concert': 'music event',
+  'art': 'arts and culture event',
+  'heritage': 'heritage celebration',
+  'cultural': 'cultural event',
+  'sports': 'sporting event',
+  'film': 'film festival',
+  'food': 'culinary festival'
+};
+const categoryLabel = categoryLabels[event.category?.toLowerCase()] || 'cultural event';
+
+// Generate the definition paragraph (CRITICAL for AI citation)
+const definitionText = `${event.title_en} is a ${categoryLabel} held in ${event.city}, Morocco. ${event.description_en ? event.description_en.split('.')[0] + '.' : ''} The event takes place ${event.recurrence === 'annual' ? 'annually' : ''} in ${monthName} and is recognized as one of the notable cultural events in ${event.region || 'Morocco'}.`;
+
+// Determine scope based on tags or category
+const eventScope = event.tags.some(t => t.toLowerCase().includes('international')) ? 'International' : 
+                   event.tags.some(t => t.toLowerCase().includes('national')) ? 'National' : 'Regional';
+
+// Schema.org - Use Festival type for festivals, Event for others
+const isFestival = ['festival', 'art', 'heritage', 'cultural', 'film', 'food'].includes(event.category?.toLowerCase() || '');
 const schemaOrg = {
   "@context": "https://schema.org",
-  "@type": "Event",
+  "@type": isFestival ? "Festival" : "Event",
   "@id": `https://festivalsinmorocco.com/events/${event.slug}#event`,
   "name": event.title_en,
+  "alternateName": event.title_ar || undefined,
   "startDate": event.startDate,
   "endDate": event.endDate || event.startDate,
   "eventStatus": "https://schema.org/EventScheduled",
@@ -57,39 +82,49 @@ const schemaOrg = {
       "@type": "PostalAddress",
       "addressLocality": event.city,
       "addressRegion": event.region,
-      "addressCountry": "Morocco",
-      "addressCountryCode": "MA"
+      "addressCountry": "Morocco"
     },
-    ...(event.lat && event.lng ? {
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": event.lat,
-        "longitude": event.lng
-      }
-    } : {})
+    "geo": event.lat && event.lng ? {
+      "@type": "GeoCoordinates",
+      "latitude": event.lat,
+      "longitude": event.lng
+    } : undefined
   },
-  "description": event.description_en,
+  "description": definitionText,
   "url": `https://festivalsinmorocco.com/events/${event.slug}`,
-  ...(event.image ? { "image": event.image } : {}),
-  ...(event.organizer ? {
-    "organizer": {
-      "@type": "Organization",
-      "name": event.organizer,
-      ...(event.website ? { "url": event.website } : {})
-    }
-  } : {}),
-  ...(event.price_isFree ? {
-    "isAccessibleForFree": true
-  } : event.price_min ? {
-    "offers": {
-      "@type": "Offer",
-      "price": event.price_min,
-      "priceCurrency": "MAD",
-      "availability": "https://schema.org/InStock",
-      ...(event.website ? { "url": event.website } : {})
-    }
-  } : {}),
-  "inLanguage": ["ar", "fr", "en"]
+  "image": event.image || undefined,
+  "organizer": event.organizer ? {
+    "@type": "Organization",
+    "name": event.organizer,
+    "url": event.website || undefined
+  } : undefined,
+  "isAccessibleForFree": event.price_isFree || undefined,
+  "offers": !event.price_isFree && event.price_min ? {
+    "@type": "Offer",
+    "price": event.price_min,
+    "priceCurrency": "MAD",
+    "availability": "https://schema.org/InStock",
+    "url": event.website || undefined
+  } : undefined,
+  "inLanguage": ["ar", "fr", "en"],
+  "typicalAgeRange": "All ages",
+  "audience": {
+    "@type": "Audience",
+    "audienceType": "Cultural travelers, locals, festival enthusiasts"
+  }
+};
+
+// Clean undefined values from schema
+const cleanSchema = (obj: any): any => {
+  if (Array.isArray(obj)) return obj.map(cleanSchema);
+  if (obj && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => [k, cleanSchema(v)])
+    );
+  }
+  return obj;
 };
 
 // Breadcrumb schema
@@ -97,82 +132,53 @@ const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "Home",
-      "item": "https://festivalsinmorocco.com"
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "Events",
-      "item": "https://festivalsinmorocco.com/events"
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "name": event.title_en,
-      "item": `https://festivalsinmorocco.com/events/${event.slug}`
-    }
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://festivalsinmorocco.com" },
+    { "@type": "ListItem", "position": 2, "name": "Events", "item": "https://festivalsinmorocco.com/events" },
+    { "@type": "ListItem", "position": 3, "name": event.title_en, "item": `https://festivalsinmorocco.com/events/${event.slug}` }
   ]
 };
 
-// Article schema for AI citation - makes content citable by LLMs
-const articleSchema = {
+// FAQPage schema - helps AI answer questions about this event
+const faqSchema = {
   "@context": "https://schema.org",
-  "@type": "Article",
-  "@id": `https://festivalsinmorocco.com/events/${event.slug}#article`,
-  "headline": event.title_en,
-  "description": event.description_en,
-  "url": `https://festivalsinmorocco.com/events/${event.slug}`,
-  ...(event.image ? { 
-    "image": {
-      "@type": "ImageObject",
-      "url": event.image
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": `What is ${event.title_en}?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": definitionText
+      }
+    },
+    {
+      "@type": "Question", 
+      "name": `When is ${event.title_en}?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `${event.title_en} takes place ${formatDateRange(event.startDate, event.endDate)} in ${event.city}, Morocco.`
+      }
+    },
+    {
+      "@type": "Question",
+      "name": `Where is ${event.title_en} held?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `${event.title_en} is held in ${event.city}${event.venue ? ` at ${event.venue}` : ''}, ${event.region || 'Morocco'}.`
+      }
     }
-  } : {}),
-  "author": {
-    "@type": "Organization",
-    "name": "Festivals in Morocco",
-    "url": "https://festivalsinmorocco.com"
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": "Slow Morocco",
-    "url": "https://slowmorocco.com",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://festivalsinmorocco.com/favicon.svg"
-    }
-  },
-  "datePublished": "2024-01-01",
-  "dateModified": new Date().toISOString().split('T')[0],
-  "mainEntityOfPage": {
-    "@type": "WebPage",
-    "@id": `https://festivalsinmorocco.com/events/${event.slug}`
-  },
-  "about": {
-    "@type": "Event",
-    "@id": `https://festivalsinmorocco.com/events/${event.slug}#event`
-  },
-  "speakable": {
-    "@type": "SpeakableSpecification",
-    "cssSelector": [".event-description", ".hero-content h1", ".event-meta"]
-  },
-  "inLanguage": "en",
-  "isAccessibleForFree": true,
-  "keywords": [event.category, event.city, event.region, "Morocco", "festival", ...event.tags].filter(Boolean).join(", ")
+  ]
 };
 ---
 
 <Base
   title={`${event.title_en} - Festivals in Morocco`}
-  description={event.description_en || `${event.title_en} in ${event.city || event.region}, Morocco`}
+  description={definitionText}
   image={event.image}
 >
-  <script type="application/ld+json" set:html={JSON.stringify(schemaOrg)} />
+  <script type="application/ld+json" set:html={JSON.stringify(cleanSchema(schemaOrg))} />
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
 
   <!-- HERO -->
   <section class="event-hero" slot="hero">
@@ -229,11 +235,59 @@ const articleSchema = {
   <article class="event-detail">
     <div class="event-body">
       <div class="event-main">
-        <!-- ABOUT -->
-        <section class="why-go-section">
-          <h2>About This Event</h2>
-          <p class="why-go-text">{event.description_en}</p>
+        
+        <!-- DEFINITION BLOCK - Critical for AI citation -->
+        <section class="definition-block" id="about">
+          <h2>About {event.title_en}</h2>
+          <p class="definition-text">{definitionText}</p>
         </section>
+
+        <!-- FESTIVAL FACTS TABLE - Structured for AI extraction -->
+        <section class="festival-facts">
+          <h2>Festival Facts</h2>
+          <table class="facts-table">
+            <tbody>
+              <tr>
+                <th>Location</th>
+                <td>{event.city}, Morocco</td>
+              </tr>
+              <tr>
+                <th>Region</th>
+                <td>{event.region || 'Morocco'}</td>
+              </tr>
+              <tr>
+                <th>Category</th>
+                <td style="text-transform: capitalize;">{event.category}</td>
+              </tr>
+              <tr>
+                <th>Typical Dates</th>
+                <td>{monthName} (annually)</td>
+              </tr>
+              <tr>
+                <th>Scope</th>
+                <td>{eventScope}</td>
+              </tr>
+              {event.organizer && (
+                <tr>
+                  <th>Organizer</th>
+                  <td>{event.organizer}</td>
+                </tr>
+              )}
+              <tr>
+                <th>Admission</th>
+                <td>{event.price_isFree ? 'Free entry' : event.price_min ? `From ${event.price_min} MAD` : 'Varies'}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- EXTENDED DESCRIPTION -->
+        {event.description_en && (
+          <section class="why-go-section">
+            <h2>What to Expect</h2>
+            <p class="why-go-text">{event.description_en}</p>
+          </section>
+        )}
 
         <!-- TAGS -->
         {event.tags.length > 0 && (
@@ -246,6 +300,15 @@ const articleSchema = {
             </div>
           </section>
         )}
+
+        <!-- CROSS-LINKS - Helps AI build knowledge graph -->
+        <section class="related-section">
+          <h2>More in {event.city}</h2>
+          <p class="cross-link-text">
+            {event.city} hosts several cultural events throughout the year. 
+            <a href={`/cities/${event.city.toLowerCase().replace(/\s+/g, '-')}`}>See all events in {event.city}</a>.
+          </p>
+        </section>
       </div>
 
       <!-- SIDEBAR -->
@@ -955,5 +1018,103 @@ const articleSchema = {
     .info-card {
       grid-column: span 1;
     }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     DEFINITION BLOCK - Critical for AI citation
+     ═══════════════════════════════════════════════════════════════ */
+  .definition-block {
+    padding: 2rem;
+    background: var(--bg-warm);
+    border-radius: 12px;
+    margin-bottom: 2.5rem;
+    border-left: 4px solid var(--accent);
+  }
+
+  .definition-block h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    color: var(--text);
+  }
+
+  .definition-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--text);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     FESTIVAL FACTS TABLE
+     ═══════════════════════════════════════════════════════════════ */
+  .festival-facts {
+    margin-bottom: 2.5rem;
+  }
+
+  .festival-facts h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+
+  .facts-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .facts-table tr {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .facts-table tr:last-child {
+    border-bottom: none;
+  }
+
+  .facts-table th {
+    text-align: left;
+    padding: 0.875rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--bg-warm);
+    width: 35%;
+    vertical-align: top;
+  }
+
+  .facts-table td {
+    padding: 0.875rem 1rem;
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     CROSS-LINKS
+     ═══════════════════════════════════════════════════════════════ */
+  .related-section {
+    margin-top: 2.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .related-section h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .cross-link-text {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .cross-link-text a {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+
+  .cross-link-text a:hover {
+    color: var(--accent-hover);
   }
 </style>

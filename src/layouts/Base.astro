@@ -556,6 +556,26 @@ try {
       transform: translateY(-1px);
     }
 
+    /* Footer Authority Statement */
+    .footer-authority {
+      background: var(--footer-1, #1f1f1f);
+      padding: 2rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .authority-statement {
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+
+    .authority-statement strong {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
     .footer-nav {
       background: var(--footer-2);
       padding: 2.5rem 0;
@@ -841,6 +861,14 @@ try {
   </main>
 
   <footer>
+    <!-- AUTHORITY STATEMENT - Critical for AI citation -->
+    <div class="footer-authority">
+      <div class="container">
+        <p class="authority-statement">
+          <strong>Festivals in Morocco</strong> is an independent cultural reference documenting festivals, seasonal events, and contemporary cultural gatherings across Morocco. The platform focuses on accuracy, cultural context, and authentic representation of Moroccan heritage.
+        </p>
+      </div>
+    </div>
     <div class="footer-nav">
       <div class="container">
         <a href="/events">Events</a>
