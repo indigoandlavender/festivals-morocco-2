@@ -16,7 +16,30 @@ export const CITY_COORDINATES: Record<string, [number, number]> = {
   'moulay-idriss-zerhoun': [34.0553, -5.5242],
   'tan-tan': [28.4380, -11.1031],
   'merzouga': [31.0801, -4.0134],
-  'imilchil': [32.1528, -5.6292]
+  'imilchil': [32.1528, -5.6292],
+  // Additional cities for festival coverage
+  'ouarzazate': [30.9189, -6.8936],
+  'erfoud': [31.4314, -4.2286],
+  'mhamid': [29.8256, -5.7231],
+  'asilah': [35.4653, -6.0341],
+  'ifrane': [33.5228, -5.1109],
+  'kelaat-mgouna': [31.2369, -6.1297],
+  'tafraoute': [29.7211, -8.9753],
+  'sefrou': [33.8306, -4.8353],
+  'meknes': [33.8731, -5.5407],
+  'oujda': [34.6867, -1.9114],
+  'taza': [34.2133, -4.0103],
+  'zagora': [30.3314, -5.8381],
+  'taroudant': [30.4706, -8.8769],
+  'tiznit': [29.6974, -9.7316],
+  'dakhla': [23.6848, -15.9580],
+  'laayoune': [27.1536, -13.2033],
+  'nador': [35.1681, -2.9287],
+  'al-hoceima': [35.2517, -3.9372],
+  'saidia': [35.0867, -2.3347],
+  'beni-mellal': [32.3373, -6.3498],
+  'khouribga': [32.8811, -6.9063],
+  'settat': [33.0017, -7.6167]
 };
 
 // Region center coordinates for label placement [latitude, longitude]

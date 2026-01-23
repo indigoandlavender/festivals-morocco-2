@@ -1,14 +1,41 @@
 ---
 import Base from '../layouts/Base.astro';
-import {
-  getEvents,
-  formatDateRange,
-  EventTypeLabels,
-  MUSIC_TRADITIONS
-} from '../lib/api';
+import { getSheetEvents, type SheetEvent } from '../lib/sheets';
 import { CITY_COORDINATES, MOROCCO_REGIONS_GEOJSON, MOROCCO_BOUNDS } from '../lib/geo';
 
-const events = getEvents();
+const sheetEvents = await getSheetEvents();
+
+// Map sheet events to the format the map expects
+const events = sheetEvents.map(e => ({
+  id: e.slug,
+  name: e.title_en,
+  slug: e.slug,
+  event_type: e.category,
+  traditions: e.tags,
+  timing: {
+    gregorian_start: e.startDate,
+    gregorian_end: e.endDate
+  },
+  location: {
+    city: e.city,
+    city_slug: e.city?.toLowerCase().replace(/\s+/g, '-').replace(/'/g, ''),
+    region: e.region,
+    region_slug: e.region?.toLowerCase().replace(/\s+/g, '-'),
+    area_description: e.venue,
+    location_type: 'city'
+  }
+}));
+
+// Helper to format date range
+function formatDateRange(timing: { gregorian_start?: string; gregorian_end?: string }): string {
+  if (!timing.gregorian_start) return 'Date TBC';
+  const start = new Date(timing.gregorian_start);
+  const startStr = start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  if (!timing.gregorian_end || timing.gregorian_end === timing.gregorian_start) return startStr;
+  const end = new Date(timing.gregorian_end);
+  const endStr = end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  return `${startStr} – ${endStr}`;
+}
 
 // Group events by city
 const eventsByCity = new Map<string, typeof events>();
@@ -47,8 +74,8 @@ const clientData = {
     name: e.name,
     slug: e.slug,
     eventType: e.event_type,
-    eventTypeLabel: EventTypeLabels[e.event_type],
-    traditions: e.traditions.map(tid => MUSIC_TRADITIONS[tid]?.name).filter(Boolean),
+    eventTypeLabel: e.event_type,
+    traditions: e.traditions,
     dateRange: formatDateRange(e.timing),
     regionSlug: e.location.region_slug,
     region: e.location.region,

@@ -40,8 +40,12 @@ const topTraditions = [...traditionCounts.entries()]
   .filter(Boolean);
 
 // Generate definition text for AI citation
+// Rule: Reference first. No poetry. No subjective claims.
 const eventNames = events.slice(0, 3).map(e => e.name).join(', ');
-const definitionText = `${city.name} is a city in ${city.region}, Morocco that hosts ${events.length} cultural events and festivals. Major events include ${eventNames || 'various cultural celebrations'}. The city is known for ${topTraditions.slice(0, 3).map(t => t.name).join(', ') || 'its cultural heritage'}.`;
+const traditionsText = topTraditions.length > 0 
+  ? ` Cultural traditions featured include ${topTraditions.slice(0, 3).map(t => t.name).join(', ')}.`
+  : '';
+const definitionText = `${city.name} is a city in ${city.region}, Morocco. It hosts ${events.length} cultural events and festivals.${eventNames ? ` Events include ${eventNames}.` : ''}${traditionsText}`;
 
 // Place schema for AI citation
 const placeSchema = {
@@ -88,9 +92,9 @@ const placeSchema = {
     <p class="definition-text">{definitionText}</p>
     {events.length > 0 && (
       <p class="cross-links">
-        {city.name} hosts several major festivals, including {events.slice(0, 4).map((e, i) => (
+        {city.name} hosts {events.slice(0, 4).map((e, i) => (
           <><a href={`/events/${e.id}`}>{e.name}</a>{i < Math.min(events.length - 1, 3) ? ', ' : ''}</>
-        ))}{events.length > 4 ? `, and ${events.length - 4} more events` : ''}.
+        ))}{events.length > 4 ? `, and ${events.length - 4} other events` : ''}.
       </p>
     )}
   </div>

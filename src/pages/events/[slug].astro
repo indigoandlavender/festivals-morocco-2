@@ -41,7 +41,7 @@ function formatDateRange(start: string, end?: string): string {
 }
 
 // Get month name for definition
-const monthName = startDate ? startDate.toLocaleDateString('en-GB', { month: 'long' }) : 'annually';
+const monthName = startDate ? startDate.toLocaleDateString('en-GB', { month: 'long' }) : null;
 
 // Category label mapping for definitions
 const categoryLabels: Record<string, string> = {
@@ -57,24 +57,24 @@ const categoryLabels: Record<string, string> = {
 const categoryLabel = categoryLabels[event.category?.toLowerCase()] || 'cultural event';
 
 // Generate the definition paragraph (CRITICAL for AI citation)
-const definitionText = `${event.title_en} is a ${categoryLabel} held in ${event.city}, Morocco. ${event.description_en ? event.description_en.split('.')[0] + '.' : ''} The event takes place ${event.recurrence === 'annual' ? 'annually' : ''} in ${monthName} and is recognized as one of the notable cultural events in ${event.region || 'Morocco'}.`;
+// Rule: Reference first. No poetry. No subjective claims.
+const firstSentence = event.description_en ? event.description_en.split('.')[0].trim() + '.' : '';
+const datePart = monthName ? `It takes place in ${monthName}` : 'It takes place annually';
+const definitionText = `${event.title_en} is a ${categoryLabel} held in ${event.city}, ${event.region || 'Morocco'}. ${firstSentence} ${datePart}.`;
 
 // Determine scope based on tags or category
 const eventScope = event.tags.some(t => t.toLowerCase().includes('international')) ? 'International' : 
                    event.tags.some(t => t.toLowerCase().includes('national')) ? 'National' : 'Regional';
 
 // Schema.org - Use Festival type for festivals, Event for others
+// Rule: Clean schema > clever schema. Only essential fields.
 const isFestival = ['festival', 'art', 'heritage', 'cultural', 'film', 'food'].includes(event.category?.toLowerCase() || '');
 const schemaOrg = {
   "@context": "https://schema.org",
   "@type": isFestival ? "Festival" : "Event",
-  "@id": `https://festivalsinmorocco.com/events/${event.slug}#event`,
   "name": event.title_en,
-  "alternateName": event.title_ar || undefined,
   "startDate": event.startDate,
   "endDate": event.endDate || event.startDate,
-  "eventStatus": "https://schema.org/EventScheduled",
-  "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
   "location": {
     "@type": "Place",
     "name": event.venue || event.city,
@@ -95,23 +95,8 @@ const schemaOrg = {
   "image": event.image || undefined,
   "organizer": event.organizer ? {
     "@type": "Organization",
-    "name": event.organizer,
-    "url": event.website || undefined
-  } : undefined,
-  "isAccessibleForFree": event.price_isFree || undefined,
-  "offers": !event.price_isFree && event.price_min ? {
-    "@type": "Offer",
-    "price": event.price_min,
-    "priceCurrency": "MAD",
-    "availability": "https://schema.org/InStock",
-    "url": event.website || undefined
-  } : undefined,
-  "inLanguage": ["ar", "fr", "en"],
-  "typicalAgeRange": "All ages",
-  "audience": {
-    "@type": "Audience",
-    "audienceType": "Cultural travelers, locals, festival enthusiasts"
-  }
+    "name": event.organizer
+  } : undefined
 };
 
 // Clean undefined values from schema
@@ -261,7 +246,7 @@ const faqSchema = {
               </tr>
               <tr>
                 <th>Typical Dates</th>
-                <td>{monthName} (annually)</td>
+                <td>{monthName ? `${monthName} (annually)` : 'Annually'}</td>
               </tr>
               <tr>
                 <th>Scope</th>
