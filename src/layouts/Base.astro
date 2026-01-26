@@ -564,6 +564,24 @@ try {
       color: rgba(250, 249, 247, 0.6);
     }
 
+    .footer-powered {
+      background: #131311;
+      padding: var(--space-sm) 0;
+      text-align: center;
+    }
+
+    .footer-powered a {
+      font-size: 0.5625rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: rgba(250, 249, 247, 0.15);
+      transition: color var(--duration) var(--ease-out);
+    }
+
+    .footer-powered a:hover {
+      color: rgba(250, 249, 247, 0.4);
+    }
+
     /* ═══════════════════════════════════════════════════════════════════════════
        RESPONSIVE
     ═══════════════════════════════════════════════════════════════════════════ */
@@ -699,6 +717,11 @@ try {
         <div class="footer-bottom">
           <span>© {new Date().getFullYear()} Slow Morocco</span>
         </div>
+      </div>
+    </div>
+    <div class="footer-powered">
+      <div class="container">
+        <a href="https://www.slowmorocco.com/" target="_blank" rel="noopener">Powered by Slow Morocco</a>
       </div>
     </div>
   </footer>
