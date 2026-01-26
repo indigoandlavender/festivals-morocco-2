@@ -8,7 +8,6 @@ const cityFilter = url.searchParams.get('city');
 const categoryFilter = url.searchParams.get('category');
 const query = url.searchParams.get('q');
 
-// Fetch events from Google Sheets
 let events = await getSheetEvents();
 const cities = getCities();
 
@@ -32,72 +31,67 @@ if (query) {
   );
 }
 
-// Sort by date
 events.sort((a, b) => a.startDate.localeCompare(b.startDate));
 
 const hasFilters = cityFilter || categoryFilter || query;
 
-// Placeholder gradients
-const gradients = [
-  'linear-gradient(135deg, #5A6F5E 0%, #4A5C4D 100%)',
-  'linear-gradient(135deg, #B8705B 0%, #8A5A50 100%)',
-  'linear-gradient(135deg, #7A706A 0%, #5A5A5A 100%)',
-  'linear-gradient(135deg, #6B7B8A 0%, #4A5A6A 100%)',
-];
-
-// Helper to format date range
-function formatDateRange(start: string, end?: string): string {
-  const startDate = new Date(start);
-  const startStr = startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  
-  if (!end || end === start) return startStr;
-  
-  const endDate = new Date(end);
-  const endStr = endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  return `${startStr} – ${endStr}`;
+function formatDate(dateStr: string): { day: string; month: string } {
+  const date = new Date(dateStr);
+  return {
+    day: String(date.getDate()).padStart(2, '0'),
+    month: date.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase()
+  };
 }
+
+const categories = ['festival', 'concert', 'heritage', 'cultural', 'art', 'sports'];
 ---
 
-<Base title="Events - Festivals in Morocco">
+<Base title="Events — Festivals in Morocco">
   <div class="page-header">
+    <span class="micro-label">Archive</span>
     <h1>Events</h1>
-    <p class="subtitle">{events.length} cultural events in Morocco</p>
+    <p class="page-intro">{events.length} cultural events across Morocco</p>
   </div>
 
+  <!-- Filters -->
   <div class="filters">
-    <div class="search-wrapper">
-      <form method="GET" action="/events" class="search-inline">
-        <input
-          type="search"
-          name="q"
-          placeholder="Search events, artists, places..."
-          value={query || ''}
-          autocomplete="off"
-        >
-        <button type="submit">Search</button>
-      </form>
-      <a href="/search" class="advanced-link">Advanced search</a>
-    </div>
-
     <div class="filter-row">
-      <select name="category" id="category-filter">
-        <option value="">All Categories</option>
-        <option value="festival" selected={categoryFilter === 'festival'}>Festivals</option>
-        <option value="concert" selected={categoryFilter === 'concert'}>Concerts</option>
-        <option value="heritage" selected={categoryFilter === 'heritage'}>Heritage</option>
-        <option value="cultural" selected={categoryFilter === 'cultural'}>Cultural</option>
-        <option value="art" selected={categoryFilter === 'art'}>Art</option>
-        <option value="sports" selected={categoryFilter === 'sports'}>Sports</option>
-      </select>
+      <div class="filter-group">
+        <label class="micro-label">Category</label>
+        <select id="category-filter">
+          <option value="">All Categories</option>
+          {categories.map(cat => (
+            <option value={cat} selected={categoryFilter === cat}>
+              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <select name="city" id="city-filter">
-        <option value="">All Cities</option>
-        {cities.map(city => (
-          <option value={city.slug} selected={cityFilter === city.slug}>
-            {city.name} ({city.count})
-          </option>
-        ))}
-      </select>
+      <div class="filter-group">
+        <label class="micro-label">City</label>
+        <select id="city-filter">
+          <option value="">All Cities</option>
+          {cities.map(city => (
+            <option value={city.slug} selected={cityFilter === city.slug}>
+              {city.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div class="filter-group filter-group--search">
+        <label class="micro-label">Search</label>
+        <form method="GET" action="/events" class="search-form">
+          <input
+            type="search"
+            name="q"
+            placeholder="Search..."
+            value={query || ''}
+            autocomplete="off"
+          >
+        </form>
+      </div>
     </div>
 
     {hasFilters && (
@@ -105,30 +99,31 @@ function formatDateRange(start: string, end?: string): string {
     )}
   </div>
 
+  <!-- Events Grid -->
   <div class="events-grid">
     {events.map((event, i) => {
-      const hasImage = event.image && event.image.startsWith('http');
-
+      const date = event.startDate ? formatDate(event.startDate) : null;
       return (
         <a href={`/events/${event.slug}`} class="event-card">
-          <div class="event-image" style={hasImage ? `background: url(${event.image}) center/cover no-repeat` : `background: ${gradients[i % gradients.length]}`}>
-            <span class="event-category">{event.category}</span>
-          </div>
-          <div class="event-content">
-            <span class="event-date">{formatDateRange(event.startDate, event.endDate)}</span>
-            <h2>{event.title_en}</h2>
-            <p class="event-location">{event.city}{event.region ? `, ${event.region}` : ''}</p>
-
-            {event.tags.length > 0 && (
-              <div class="event-traditions">
-                {event.tags.slice(0, 3).map(tag => (
-                  <span class="tradition-tag">{tag}</span>
-                ))}
-                {event.tags.length > 3 && (
-                  <span class="tradition-more">+{event.tags.length - 3}</span>
-                )}
-              </div>
+          <div class="event-card__image">
+            {event.image ? (
+              <img src={event.image} alt={event.title_en} loading="lazy" />
+            ) : (
+              <div class="event-card__placeholder"></div>
             )}
+          </div>
+          <div class="event-card__content">
+            <div class="event-card__meta">
+              {date && (
+                <div class="event-card__date">
+                  <span class="date-day">{date.day}</span>
+                  <span class="date-month">{date.month}</span>
+                </div>
+              )}
+              <span class="micro-label">{event.category}</span>
+            </div>
+            <h2>{event.title_en}</h2>
+            <p class="event-card__location">{event.city}</p>
           </div>
         </a>
       );
@@ -166,301 +161,208 @@ function formatDateRange(start: string, end?: string): string {
 
 <style>
   .page-header {
-    margin-bottom: 2rem;
+    padding: var(--space-xl) 0 var(--space-lg);
+    border-bottom: 1px solid var(--stone);
+    margin-bottom: var(--space-lg);
   }
 
-  .page-header h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
+  .page-header .micro-label {
+    display: block;
     margin-bottom: 0.5rem;
   }
 
-  .subtitle {
-    color: var(--text-muted);
+  .page-header h1 {
+    margin-bottom: 0.5rem;
   }
 
+  .page-intro {
+    color: var(--warm-gray);
+    font-size: 0.9375rem;
+  }
+
+  /* Filters */
   .filters {
-    margin-bottom: 2rem;
-  }
-
-  .search-wrapper {
-    margin-bottom: 1rem;
-  }
-
-  .search-inline {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .search-inline input {
-    flex: 1;
-    max-width: 400px;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-card);
-    color: var(--text);
-    font-size: 0.95rem;
-  }
-
-  .search-inline input:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-
-  .search-inline button {
-    padding: 0.75rem 1.25rem;
-    background: var(--accent);
-    color: var(--accent-contrast);
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .advanced-link {
-    display: inline-block;
-    margin-top: 0.5rem;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-  }
-
-  .advanced-link:hover {
-    color: var(--accent);
+    margin-bottom: var(--space-xl);
   }
 
   .filter-row {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-md);
     flex-wrap: wrap;
   }
 
-  .filter-row select {
-    padding: 0.625rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-card);
-    color: var(--text);
-    font-size: 0.9rem;
-    cursor: pointer;
+  .filter-group {
+    flex: 1;
     min-width: 160px;
   }
 
-  .filter-row select:focus {
+  .filter-group--search {
+    flex: 2;
+  }
+
+  .filter-group .micro-label {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .filter-group select,
+  .filter-group input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--stone);
+    background: var(--paper);
+    color: var(--charcoal);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-out);
+  }
+
+  .filter-group select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A857D' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+  }
+
+  .filter-group select:focus,
+  .filter-group input:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: var(--ink);
+  }
+
+  .search-form {
+    width: 100%;
   }
 
   .clear-filters {
     display: inline-block;
-    margin-top: 0.75rem;
-    color: var(--accent);
-    font-size: 0.875rem;
+    margin-top: var(--space-sm);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--terracotta);
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--duration-fast) var(--ease-out);
   }
 
+  .clear-filters:hover {
+    border-color: var(--terracotta);
+  }
+
+  /* Events Grid */
   .events-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
   }
 
   .event-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    display: block;
+    background: var(--paper);
+    border: 1px solid var(--stone);
+    transition: all var(--duration) var(--ease-out);
     overflow: hidden;
-    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
   }
 
   .event-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    border-color: var(--ink);
+    transform: translateY(-4px);
   }
 
-  .event-image {
-    height: 180px;
-    position: relative;
+  .event-card__image {
+    aspect-ratio: 4/3;
+    overflow: hidden;
+    background: var(--stone);
+  }
+
+  .event-card__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--duration) var(--ease-out);
+  }
+
+  .event-card:hover .event-card__image img {
+    transform: scale(1.03);
+  }
+
+  .event-card__placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, var(--charcoal) 0%, var(--ink) 100%);
+  }
+
+  .event-card__content {
+    padding: var(--space-md);
+  }
+
+  .event-card__meta {
     display: flex;
-    align-items: flex-end;
-    justify-content: flex-start;
-    padding: 1rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--space-sm);
   }
 
-  .event-category {
-    background: rgba(255,255,255,0.9);
-    color: var(--text);
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.35rem 0.75rem;
-    border-radius: 100px;
+  .event-card__date {
+    text-align: center;
+    line-height: 1;
   }
 
-  .event-content {
-    padding: 1.25rem;
+  .event-card__date .date-day {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    color: var(--ink);
   }
 
-  .event-date {
-    color: var(--accent);
-    font-size: 0.8rem;
-    font-weight: 500;
-    margin-bottom: 0.5rem;
+  .event-card__date .date-month {
+    font-size: 0.625rem;
+    letter-spacing: 0.1em;
+    color: var(--warm-gray);
   }
 
   .event-card h2 {
-    font-size: 1.15rem;
-    font-weight: 600;
-    margin-bottom: 0.375rem;
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
     line-height: 1.3;
   }
 
-  .event-location {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    margin-bottom: 0.75rem;
+  .event-card__location {
+    font-size: 0.8125rem;
+    color: var(--warm-gray);
   }
 
-  .event-traditions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.375rem;
-  }
-
-  .tradition-tag {
-    padding: 0.25rem 0.625rem;
-    border-radius: 100px;
-    font-size: 0.7rem;
-    background: var(--bg);
-    color: var(--text-muted);
-  }
-
-  .tradition-more {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-  }
-
-  .tradition-tag[data-category="hybrid"] {
-    background: var(--category-hybrid-bg);
-    color: var(--category-hybrid);
-  }
-
-  .tradition-tag[data-category="imported"] {
-    background: var(--category-imported-bg);
-    color: var(--category-imported);
-  }
-
-  .tradition-tag[data-sacred="true"] {
-    border: 1px solid var(--sacred);
-  }
-
-  .tradition-more {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-  }
-
-  .event-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border);
-  }
-
-  .event-type {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-  }
-
-  .event-status {
-    font-size: 0.75rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    text-transform: capitalize;
-  }
-
-  .event-status[data-status="confirmed"] {
-    background: var(--status-confirmed-bg);
-    color: var(--status-confirmed);
-  }
-
-  .event-status[data-status="announced"] {
-    background: var(--status-announced-bg);
-    color: var(--status-announced);
-  }
-
-  .event-status[data-status="tentative"] {
-    background: var(--status-tentative-bg);
-    color: var(--status-tentative);
-  }
-
+  /* No Results */
   .no-results {
     text-align: center;
-    padding: 3rem;
-    color: var(--text-muted);
+    padding: var(--space-2xl) 0;
+    color: var(--warm-gray);
   }
 
   .no-results .btn {
-    display: inline-block;
-    margin-top: 1rem;
-    padding: 0.75rem 1.5rem;
-    background: var(--accent);
-    color: var(--accent-contrast);
-    border-radius: 8px;
-    font-weight: 600;
+    margin-top: var(--space-md);
   }
 
-  .legend {
-    margin-top: 3rem;
-    padding: 1.5rem;
-    background: var(--bg-card);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-  }
-
-  .legend h3 {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--text-muted);
-  }
-
-  .legend-items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-  }
-
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-  }
-
-  @media (max-width: 640px) {
-    .page-header h1 {
-      font-size: 2rem;
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .events-grid {
+      grid-template-columns: repeat(2, 1fr);
     }
+  }
 
+  @media (max-width: 768px) {
     .filter-row {
       flex-direction: column;
     }
 
-    .filter-row select {
-      width: 100%;
+    .filter-group {
+      min-width: 100%;
     }
 
     .events-grid {
       grid-template-columns: 1fr;
-    }
-
-    .legend-items {
-      flex-direction: column;
-      gap: 0.75rem;
     }
   }
 </style>

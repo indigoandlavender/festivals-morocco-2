@@ -18,60 +18,39 @@ if (!event) {
 
 const startDate = event.startDate ? new Date(event.startDate) : null;
 const endDate = event.endDate ? new Date(event.endDate) : null;
-const hasImage = event.image && event.image.startsWith('http');
 
-// Placeholder gradients
-const gradients = [
-  'linear-gradient(135deg, #5A6F5E 0%, #3A4A3D 100%)',
-  'linear-gradient(135deg, #B8705B 0%, #8A5A50 100%)',
-  'linear-gradient(135deg, #7A706A 0%, #5A5A5A 100%)',
-];
-const gradient = gradients[Math.abs(event.slug.charCodeAt(0)) % gradients.length];
-
-// Helper to format date range
-function formatDateRange(start: string, end?: string): string {
-  const startDate = new Date(start);
-  const startStr = startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  
-  if (!end || end === start) return startStr;
-  
-  const endDate = new Date(end);
-  const endStr = endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  return `${startStr} – ${endStr}`;
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-GB', { 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  });
 }
 
-// Get month name for definition
+function formatDateRange(start: Date, end?: Date): string {
+  const startStr = formatDate(start);
+  if (!end || start.getTime() === end.getTime()) return startStr;
+  return `${startStr} — ${formatDate(end)}`;
+}
+
 const monthName = startDate ? startDate.toLocaleDateString('en-GB', { month: 'long' }) : null;
 
-// Category label mapping for definitions
 const categoryLabels: Record<string, string> = {
   'festival': 'cultural festival',
   'concert': 'music event',
-  'art': 'arts and culture event',
+  'art': 'arts event',
   'heritage': 'heritage celebration',
   'cultural': 'cultural event',
-  'sports': 'sporting event',
-  'film': 'film festival',
-  'food': 'culinary festival'
+  'sports': 'sporting event'
 };
 const categoryLabel = categoryLabels[event.category?.toLowerCase()] || 'cultural event';
 
-// Generate the definition paragraph (CRITICAL for AI citation)
-// Rule: Reference first. No poetry. No subjective claims.
 const firstSentence = event.description_en ? event.description_en.split('.')[0].trim() + '.' : '';
-const datePart = monthName ? `It takes place in ${monthName}` : 'It takes place annually';
-const definitionText = `${event.title_en} is a ${categoryLabel} held in ${event.city}, ${event.region || 'Morocco'}. ${firstSentence} ${datePart}.`;
+const definitionText = `${event.title_en} is a ${categoryLabel} held in ${event.city}, Morocco. ${firstSentence}`;
 
-// Determine scope based on tags or category
-const eventScope = event.tags.some(t => t.toLowerCase().includes('international')) ? 'International' : 
-                   event.tags.some(t => t.toLowerCase().includes('national')) ? 'National' : 'Regional';
-
-// Schema.org - Use Festival type for festivals, Event for others
-// Rule: Clean schema > clever schema. Only essential fields.
-const isFestival = ['festival', 'art', 'heritage', 'cultural', 'film', 'food'].includes(event.category?.toLowerCase() || '');
 const schemaOrg = {
   "@context": "https://schema.org",
-  "@type": isFestival ? "Festival" : "Event",
+  "@type": "Festival",
   "name": event.title_en,
   "startDate": event.startDate,
   "endDate": event.endDate || event.startDate,
@@ -83,93 +62,44 @@ const schemaOrg = {
       "addressLocality": event.city,
       "addressRegion": event.region,
       "addressCountry": "Morocco"
-    },
-    "geo": event.lat && event.lng ? {
-      "@type": "GeoCoordinates",
-      "latitude": event.lat,
-      "longitude": event.lng
-    } : undefined
+    }
   },
   "description": definitionText,
   "url": `https://festivalsinmorocco.com/events/${event.slug}`,
-  "image": event.image || undefined,
-  "organizer": event.organizer ? {
-    "@type": "Organization",
-    "name": event.organizer
-  } : undefined
+  "image": event.image || undefined
 };
 
-// Clean undefined values from schema
-const cleanSchema = (obj: any): any => {
-  if (Array.isArray(obj)) return obj.map(cleanSchema);
-  if (obj && typeof obj === 'object') {
-    return Object.fromEntries(
-      Object.entries(obj)
-        .filter(([_, v]) => v !== undefined)
-        .map(([k, v]) => [k, cleanSchema(v)])
-    );
-  }
-  return obj;
-};
-
-// Breadcrumb schema
 const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
     { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://festivalsinmorocco.com" },
     { "@type": "ListItem", "position": 2, "name": "Events", "item": "https://festivalsinmorocco.com/events" },
-    { "@type": "ListItem", "position": 3, "name": event.title_en, "item": `https://festivalsinmorocco.com/events/${event.slug}` }
-  ]
-};
-
-// FAQPage schema - helps AI answer questions about this event
-const faqSchema = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": `What is ${event.title_en}?`,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": definitionText
-      }
-    },
-    {
-      "@type": "Question", 
-      "name": `When is ${event.title_en}?`,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": `${event.title_en} takes place ${formatDateRange(event.startDate, event.endDate)} in ${event.city}, Morocco.`
-      }
-    },
-    {
-      "@type": "Question",
-      "name": `Where is ${event.title_en} held?`,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": `${event.title_en} is held in ${event.city}${event.venue ? ` at ${event.venue}` : ''}, ${event.region || 'Morocco'}.`
-      }
-    }
+    { "@type": "ListItem", "position": 3, "name": event.title_en }
   ]
 };
 ---
 
 <Base
-  title={`${event.title_en} - Festivals in Morocco`}
+  title={`${event.title_en} — Festivals in Morocco`}
   description={definitionText}
   image={event.image}
 >
-  <script type="application/ld+json" set:html={JSON.stringify(cleanSchema(schemaOrg))} />
+  <script type="application/ld+json" set:html={JSON.stringify(schemaOrg)} />
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
-  <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
 
-  <!-- HERO -->
-  <section class="event-hero" slot="hero">
-    <div class="hero-bg" style={hasImage ? `background: url(${event.image}) center/cover no-repeat` : `background: ${gradient}`}></div>
+  <!-- Hero -->
+  <section class="page-hero" slot="hero">
+    <div class="hero-bg">
+      {event.image ? (
+        <img src={event.image} alt={event.title_en} />
+      ) : (
+        <div class="hero-placeholder"></div>
+      )}
+    </div>
     <div class="hero-overlay"></div>
-    <div class="hero-content">
+    
+    <div class="hero-content container">
       <nav class="breadcrumb">
         <a href="/">Home</a>
         <span>/</span>
@@ -178,229 +108,126 @@ const faqSchema = {
         <span>{event.title_en}</span>
       </nav>
       
-      <div class="hero-badges">
-        <span class="badge badge-accent">{event.category}</span>
-      </div>
-
-      <h1>
-        {event.title_en}
-        {event.title_ar && <span class="name-local">{event.title_ar}</span>}
-      </h1>
-
-      <div class="hero-meta">
-        <div class="meta-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-          <span>{formatDateRange(event.startDate, event.endDate)}</span>
-        </div>
-        <div class="meta-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-          </svg>
-          <span>{event.city}{event.region ? `, ${event.region}` : ''}</span>
+      <div class="hero-text">
+        <span class="micro-label hero-category">{event.category}</span>
+        <h1>{event.title_en}</h1>
+        {event.title_ar && <p class="hero-subtitle-ar">{event.title_ar}</p>}
+        
+        <div class="hero-meta">
+          <div class="meta-item">
+            <span class="micro-label">When</span>
+            <span class="meta-value">
+              {startDate && formatDateRange(startDate, endDate || undefined)}
+            </span>
+          </div>
+          <div class="meta-item">
+            <span class="micro-label">Where</span>
+            <span class="meta-value">{event.city}, {event.region || 'Morocco'}</span>
+          </div>
         </div>
       </div>
-    </div>
-
-    {startDate && (
-      <div class="hero-date-badge">
-        <span class="hdb-day">{startDate.getDate()}</span>
-        <span class="hdb-month">{startDate.toLocaleDateString('en-GB', { month: 'short' })}</span>
-        <span class="hdb-year">{startDate.getFullYear()}</span>
-      </div>
-    )}
-
-    <div class="photo-credit">
-      Photo: Festival archives
     </div>
   </section>
 
-  <!-- MAIN CONTENT -->
-  <article class="event-detail">
-    <div class="event-body">
-      <div class="event-main">
-        
-        <!-- DEFINITION BLOCK - Critical for AI citation -->
-        <section class="definition-block" id="about">
-          <h2>About {event.title_en}</h2>
+  <!-- Content -->
+  <article class="event-article">
+    <div class="article-grid">
+      <div class="article-main">
+        <!-- Definition Block -->
+        <section class="definition-block">
+          <h2>About</h2>
           <p class="definition-text">{definitionText}</p>
         </section>
 
-        <!-- FESTIVAL FACTS TABLE - Structured for AI extraction -->
-        <section class="festival-facts">
-          <h2>Festival Facts</h2>
-          <table class="facts-table">
-            <tbody>
-              <tr>
-                <th>Location</th>
-                <td>{event.city}, Morocco</td>
-              </tr>
-              <tr>
-                <th>Region</th>
-                <td>{event.region || 'Morocco'}</td>
-              </tr>
-              <tr>
-                <th>Category</th>
-                <td style="text-transform: capitalize;">{event.category}</td>
-              </tr>
-              <tr>
-                <th>Typical Dates</th>
-                <td>{monthName ? `${monthName} (annually)` : 'Annually'}</td>
-              </tr>
-              <tr>
-                <th>Scope</th>
-                <td>{eventScope}</td>
-              </tr>
-              {event.organizer && (
-                <tr>
-                  <th>Organizer</th>
-                  <td>{event.organizer}</td>
-                </tr>
-              )}
-              <tr>
-                <th>Admission</th>
-                <td>{event.price_isFree ? 'Free entry' : event.price_min ? `From ${event.price_min} MAD` : 'Varies'}</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
-        <!-- EXTENDED DESCRIPTION -->
+        <!-- Description -->
         {event.description_en && (
-          <section class="why-go-section">
+          <section class="content-section">
             <h2>What to Expect</h2>
-            <p class="why-go-text">{event.description_en}</p>
+            <p>{event.description_en}</p>
           </section>
         )}
 
-        <!-- TAGS -->
+        <!-- Tags -->
         {event.tags.length > 0 && (
-          <section class="traditions-section">
-            <h2>Tags</h2>
-            <div class="tags-grid">
+          <section class="content-section">
+            <h2>Related</h2>
+            <div class="tags">
               {event.tags.map(tag => (
-                <span class="tag-pill">{tag}</span>
+                <span class="tag">{tag}</span>
               ))}
             </div>
           </section>
         )}
-
-        <!-- CROSS-LINKS - Helps AI build knowledge graph -->
-        <section class="related-section">
-          <h2>More in {event.city}</h2>
-          <p class="cross-link-text">
-            {event.city} hosts several cultural events throughout the year. 
-            <a href={`/cities/${event.city.toLowerCase().replace(/\s+/g, '-')}`}>See all events in {event.city}</a>.
-          </p>
-        </section>
       </div>
 
-      <!-- SIDEBAR -->
-      <aside class="event-sidebar">
+      <aside class="article-sidebar">
         <div class="info-card">
           <h3>Event Details</h3>
-
-          <div class="info-row">
-            <span class="info-label">Date</span>
-            <span class="info-value">{formatDateRange(event.startDate, event.endDate)}</span>
-          </div>
-
-          <div class="info-row">
-            <span class="info-label">Location</span>
-            <span class="info-value">{event.city}{event.region ? `, ${event.region}` : ''}</span>
-          </div>
-
-          {event.venue && (
+          
+          <dl class="info-list">
             <div class="info-row">
-              <span class="info-label">Venue</span>
-              <span class="info-value">{event.venue}</span>
+              <dt>Location</dt>
+              <dd>{event.city}, Morocco</dd>
             </div>
-          )}
-
-          <div class="info-row">
-            <span class="info-label">Category</span>
-            <span class="info-value">{event.category}</span>
-          </div>
-
-          {event.price_isFree ? (
+            {event.region && (
+              <div class="info-row">
+                <dt>Region</dt>
+                <dd>{event.region}</dd>
+              </div>
+            )}
             <div class="info-row">
-              <span class="info-label">Price</span>
-              <span class="info-value price-free">Free</span>
+              <dt>Category</dt>
+              <dd>{event.category}</dd>
             </div>
-          ) : event.price_min > 0 && (
+            {monthName && (
+              <div class="info-row">
+                <dt>Typical Season</dt>
+                <dd>{monthName}</dd>
+              </div>
+            )}
+            {event.organizer && (
+              <div class="info-row">
+                <dt>Organizer</dt>
+                <dd>{event.organizer}</dd>
+              </div>
+            )}
             <div class="info-row">
-              <span class="info-label">Price</span>
-              <span class="info-value">{event.price_min} – {event.price_max} MAD</span>
+              <dt>Admission</dt>
+              <dd>{event.price_isFree ? 'Free' : event.price_min ? `From ${event.price_min} MAD` : 'Varies'}</dd>
             </div>
-          )}
-
-          {event.organizer && (
-            <div class="info-row">
-              <span class="info-label">Organizer</span>
-              <span class="info-value">{event.organizer}</span>
-            </div>
-          )}
+          </dl>
         </div>
 
-        {(event.website || event.email || event.phone) && (
-          <div class="links-card">
-            <h3>Links & Contact</h3>
-            {event.website && (
-              <a href={event.website} target="_blank" rel="noopener" class="link-btn primary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                </svg>
-                Official Website
-              </a>
-            )}
-            {event.email && (
-              <a href={`mailto:${event.email}`} class="link-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-                </svg>
-                {event.email}
-              </a>
-            )}
-            {event.phone && (
-              <a href={`tel:${event.phone}`} class="link-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                </svg>
-                {event.phone}
-              </a>
-            )}
-          </div>
-        )}
-
-        {(event.lat && event.lng) && (
-          <div class="map-preview">
-            <h3>Location</h3>
-            <a href={`/map?event=${event.slug}`} class="map-link">
-              <div class="map-placeholder">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-                </svg>
-                <span>View on map</span>
-              </div>
-            </a>
-          </div>
-        )}
+        <div class="info-card info-card--cta">
+          <h3>Explore More</h3>
+          <a href={`/cities/${event.city.toLowerCase().replace(/\s+/g, '-')}`} class="cta-link">
+            More events in {event.city}
+            <span>→</span>
+          </a>
+          <a href="/map" class="cta-link">
+            View on map
+            <span>→</span>
+          </a>
+        </div>
       </aside>
     </div>
+
+    <nav class="back-nav">
+      <a href="/events">← Back to all events</a>
+    </nav>
   </article>
 </Base>
 
 <style>
-  /* ═══════════════════════════════════════════════════════════════
-     EVENT HERO
-     ═══════════════════════════════════════════════════════════════ */
-  .event-hero {
+  /* ═══════════════════════════════════════════════════════════════════════════
+     PAGE HERO
+  ═══════════════════════════════════════════════════════════════════════════ */
+  .page-hero {
     position: relative;
-    min-height: 50vh;
+    min-height: 70vh;
     display: flex;
     align-items: flex-end;
-    padding: 3rem 0;
+    overflow: hidden;
   }
 
   .hero-bg {
@@ -408,698 +235,329 @@ const faqSchema = {
     inset: 0;
   }
 
+  .hero-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .hero-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, var(--charcoal) 0%, var(--ink) 100%);
+  }
+
   .hero-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%);
+    background: linear-gradient(
+      to top,
+      rgba(26, 25, 23, 0.9) 0%,
+      rgba(26, 25, 23, 0.5) 40%,
+      rgba(26, 25, 23, 0.2) 100%
+    );
   }
 
   .hero-content {
     position: relative;
     z-index: 1;
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 1.5rem;
+    padding: var(--space-xl) var(--space-md);
     width: 100%;
+    max-width: var(--max-width);
+    margin: 0 auto;
   }
 
   .breadcrumb {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.6);
-    margin-bottom: 1.5rem;
+    gap: 0.75rem;
+    margin-bottom: var(--space-lg);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  .breadcrumb a {
+    color: rgba(250, 249, 247, 0.5);
+    transition: color var(--duration-fast) var(--ease-out);
   }
 
   .breadcrumb a:hover {
-    color: #fff;
+    color: var(--paper);
   }
 
-  .hero-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+  .breadcrumb span {
+    color: rgba(250, 249, 247, 0.3);
   }
 
-  .hero-badges .badge {
-    background: rgba(255,255,255,0.15);
-    color: #fff;
-    border-color: rgba(255,255,255,0.3);
+  .hero-text {
+    max-width: 800px;
   }
 
-  .hero-badges .badge-sacred {
-    background: rgba(138,90,80,0.4);
-    border-color: rgba(138,90,80,0.6);
+  .hero-category {
+    display: inline-block;
+    color: rgba(250, 249, 247, 0.6);
+    margin-bottom: var(--space-sm);
   }
 
-  .event-hero h1 {
-    color: #fff;
-    font-size: clamp(2rem, 5vw, 3rem);
+  .page-hero h1 {
+    color: var(--paper);
+    font-size: clamp(2.5rem, 6vw, 4rem);
     margin-bottom: 0.5rem;
-    max-width: 700px;
   }
 
-  .name-local {
-    display: block;
-    font-size: 0.5em;
-    color: rgba(255,255,255,0.7);
-    margin-top: 0.25rem;
+  .hero-subtitle-ar {
+    font-size: 1.5rem;
+    color: rgba(250, 249, 247, 0.5);
+    margin-bottom: var(--space-md);
   }
 
   .hero-meta {
     display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    margin-bottom: 1rem;
+    gap: var(--space-xl);
+    margin-top: var(--space-md);
   }
 
   .meta-item {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: rgba(255,255,255,0.8);
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .meta-item .micro-label {
+    color: rgba(250, 249, 247, 0.4);
+  }
+
+  .meta-value {
+    color: var(--paper);
     font-size: 1rem;
   }
 
-  .meta-item svg {
-    opacity: 0.7;
+  /* ═══════════════════════════════════════════════════════════════════════════
+     ARTICLE
+  ═══════════════════════════════════════════════════════════════════════════ */
+  .event-article {
+    padding-top: var(--space-xl);
   }
 
-  .hero-vibes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .hero-vibes .badge {
-    background: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.2);
-    color: rgba(255,255,255,0.9);
-  }
-
-  .hero-date-badge {
-    position: absolute;
-    top: 2rem;
-    right: 2rem;
-    background: #fff;
-    padding: 1rem 1.25rem;
-    border-radius: 12px;
-    text-align: center;
-    box-shadow: var(--shadow-lg);
-  }
-
-  .hdb-day {
-    display: block;
-    font-family: var(--font-serif);
-    font-size: 2.5rem;
-    line-height: 1;
-    color: var(--accent);
-  }
-
-  .hdb-month {
-    display: block;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text);
-  }
-
-  .hdb-year {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-  }
-
-  .photo-credit {
-    position: absolute;
-    bottom: 1rem;
-    right: 1.5rem;
-    font-size: 0.7rem;
-    color: rgba(255,255,255,0.4);
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     MAIN CONTENT
-     ═══════════════════════════════════════════════════════════════ */
-  .event-detail {
-    padding: 3rem 0 4rem;
-  }
-
-  .event-body {
+  .article-grid {
     display: grid;
     grid-template-columns: 1fr 360px;
-    gap: 4rem;
+    gap: var(--space-xl);
   }
 
-  .event-main section {
-    margin-bottom: 3rem;
-    padding-bottom: 3rem;
-    border-bottom: 1px solid var(--border);
+  .article-main {
+    max-width: var(--reading-width);
   }
 
-  .event-main section:last-child {
+  /* Definition Block */
+  .definition-block {
+    padding: var(--space-lg);
+    background: var(--paper-warm);
+    border-left: 3px solid var(--terracotta);
+    margin-bottom: var(--space-xl);
+  }
+
+  .definition-block h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--warm-gray);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    margin-bottom: var(--space-sm);
+  }
+
+  .definition-text {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: var(--charcoal);
+  }
+
+  /* Content Sections */
+  .content-section {
+    margin-bottom: var(--space-xl);
+    padding-bottom: var(--space-lg);
+    border-bottom: 1px solid var(--stone);
+  }
+
+  .content-section:last-child {
     border-bottom: none;
   }
 
-  .event-main h2 {
+  .content-section h2 {
     font-size: 1.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-sm);
   }
 
-  .section-intro {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin-bottom: 1.5rem;
-  }
-
-  /* Why Go */
-  .why-go-text {
-    font-size: 1.1rem;
+  .content-section p {
+    font-size: 0.9375rem;
     line-height: 1.8;
-    color: var(--text);
-    margin-bottom: 1.5rem;
+    color: var(--charcoal-soft);
   }
 
-  .best-for-section {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: var(--bg-warm);
-    border-radius: 8px;
-  }
-
-  .bf-label {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-
-  .bf-tags {
+  /* Tags */
+  .tags {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
   }
 
-  .bf-tag {
-    padding: 0.35rem 0.75rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    font-size: 0.8rem;
-    color: var(--text);
-  }
-
-  /* Traditions */
-  .tradition-group {
-    margin-bottom: 2rem;
-  }
-
-  .tradition-group h3 {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: var(--font-sans);
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-  }
-
-  .tg-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-
-  .tg-dot.rooted { background: var(--category-rooted); }
-  .tg-dot.hybrid { background: var(--category-hybrid); }
-  .tg-dot.imported { background: var(--category-imported); }
-
-  .group-desc {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-bottom: 1rem;
-  }
-
-  .tradition-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .tradition-card {
-    display: block;
-    padding: 1.25rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    transition: all var(--transition-base);
-  }
-
-  .tradition-card:hover {
-    border-color: var(--accent);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .tradition-card[data-sacred="true"] {
-    border-left: 3px solid var(--sacred);
-  }
-
-  .tc-main {
-    margin-bottom: 0.5rem;
-  }
-
-  .tc-name {
-    font-weight: 600;
-  }
-
-  .sacred-marker {
-    color: var(--sacred);
-    margin-left: 0.25rem;
-  }
-
-  .tc-local {
-    display: inline-block;
-    margin-left: 0.5rem;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-  }
-
-  .tc-desc {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
-
-  .tradition-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .tradition-pill {
+  .tag {
     padding: 0.5rem 1rem;
-    background: var(--category-imported-bg);
-    border-radius: 100px;
-    font-size: 0.85rem;
-    color: var(--category-imported);
-    transition: all var(--transition-fast);
+    background: var(--paper-warm);
+    border: 1px solid var(--stone);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--charcoal-soft);
+    transition: all var(--duration-fast) var(--ease-out);
   }
 
-  .tradition-pill:hover {
-    background: var(--accent-light);
-    color: var(--accent);
+  .tag:hover {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
   }
 
-  /* Artists */
-  .artist-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-
-  .artist-card {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-  }
-
-  .artist-avatar {
-    width: 36px;
-    height: 36px;
-    background: var(--accent-light);
-    color: var(--accent);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 0.9rem;
-  }
-
-  .artist-name {
-    font-size: 0.9rem;
-  }
-
-  /* Related Stories */
-  .related-list {
+  /* Sidebar */
+  .article-sidebar {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--space-md);
   }
 
-  .related-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.25rem;
-    background: var(--bg-warm);
-    border-radius: 8px;
-    transition: all var(--transition-fast);
+  .info-card {
+    padding: var(--space-md);
+    background: var(--paper-warm);
+    border: 1px solid var(--stone);
   }
 
-  .related-card:hover {
-    background: var(--accent-light);
-  }
-
-  .rc-title {
-    font-weight: 500;
-  }
-
-  .rc-source {
-    font-size: 0.8rem;
-    color: var(--accent);
-  }
-
-  /* Historical */
-  .historical-section p {
-    color: var(--text-muted);
-    line-height: 1.7;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     SIDEBAR
-     ═══════════════════════════════════════════════════════════════ */
-  .event-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .info-card,
-  .links-card,
-  .weight-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.5rem;
-  }
-
-  .info-card h3,
-  .weight-card h3 {
+  .info-card h3 {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--warm-gray);
     font-family: var(--font-sans);
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
+    font-weight: 500;
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--stone);
+  }
+
+  .info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
   }
 
   .info-row {
     display: flex;
     justify-content: space-between;
     padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border-light);
-    gap: 1rem;
+    border-bottom: 1px solid var(--stone);
+    font-size: 0.875rem;
   }
 
   .info-row:last-child {
     border-bottom: none;
   }
 
-  .info-label {
-    color: var(--text-muted);
-    font-size: 0.85rem;
+  .info-row dt {
+    color: var(--warm-gray);
   }
 
-  .info-value {
-    font-size: 0.85rem;
+  .info-row dd {
+    color: var(--charcoal);
     text-align: right;
   }
 
-  .info-value a {
-    color: var(--accent);
+  .info-card--cta {
+    background: var(--ink);
+    border-color: var(--ink);
   }
 
-  .region-name,
-  .type-desc,
-  .precision-note {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-top: 0.25rem;
+  .info-card--cta h3 {
+    color: rgba(250, 249, 247, 0.5);
+    border-bottom-color: rgba(250, 249, 247, 0.1);
   }
 
-  .link-btn {
-    display: block;
-    text-align: center;
-    padding: 0.875rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-weight: 500;
-    margin-bottom: 0.75rem;
-    transition: all var(--transition-fast);
-  }
-
-  .link-btn:last-child {
-    margin-bottom: 0;
-  }
-
-  .link-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  .link-btn.primary {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
-  }
-
-  .link-btn.primary:hover {
-    background: var(--accent-hover);
-  }
-
-  .weight-visual {
+  .cta-link {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    padding: 0.875rem 0;
+    color: var(--paper);
+    font-size: 0.875rem;
+    border-bottom: 1px solid rgba(250, 249, 247, 0.1);
+    transition: all var(--duration-fast) var(--ease-out);
   }
 
-  .weight-bar {
-    flex: 1;
-    height: 6px;
-    background: var(--border);
-    border-radius: 3px;
-    overflow: hidden;
+  .cta-link:last-child {
+    border-bottom: none;
   }
 
-  .weight-fill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 3px;
-    transition: width 600ms ease;
+  .cta-link:hover {
+    padding-left: 0.5rem;
   }
 
-  .weight-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--accent);
+  .cta-link span {
+    opacity: 0.5;
+    transition: transform var(--duration-fast) var(--ease-out);
   }
 
-  .weight-rationale {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
-
-  .map-preview {
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .map-link {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    background: var(--accent-light);
-    transition: all var(--transition-fast);
-  }
-
-  .map-link:hover {
-    background: var(--accent);
-    color: #fff;
-  }
-
-  .map-link:hover .map-placeholder {
-    background: rgba(255,255,255,0.2);
-    color: #fff;
-  }
-
-  .map-placeholder {
-    width: 48px;
-    height: 48px;
-    background: var(--bg-card);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--accent);
-    transition: all var(--transition-fast);
+  .cta-link:hover span {
+    transform: translateX(4px);
+    opacity: 1;
   }
 
   /* Back Nav */
   .back-nav {
-    padding-top: 2rem;
-    border-top: 1px solid var(--border);
+    margin-top: var(--space-xl);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--stone);
   }
 
   .back-nav a {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    transition: color var(--transition-fast);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--warm-gray);
+    transition: color var(--duration-fast) var(--ease-out);
   }
 
   .back-nav a:hover {
-    color: var(--accent);
+    color: var(--ink);
   }
 
-  /* ═══════════════════════════════════════════════════════════════
-     RESPONSIVE
-     ═══════════════════════════════════════════════════════════════ */
+  /* Responsive */
   @media (max-width: 1024px) {
-    .event-body {
+    .article-grid {
       grid-template-columns: 1fr;
     }
 
-    .event-sidebar {
-      order: -1;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
+    .article-sidebar {
+      flex-direction: row;
+      gap: var(--space-md);
     }
 
     .info-card {
-      grid-column: span 2;
+      flex: 1;
     }
   }
 
   @media (max-width: 768px) {
-    .event-hero {
+    .page-hero {
       min-height: 60vh;
     }
 
-    .hero-date-badge {
-      top: 1rem;
-      right: 1rem;
-      padding: 0.75rem 1rem;
+    .hero-meta {
+      flex-direction: column;
+      gap: var(--space-sm);
     }
 
-    .hdb-day {
-      font-size: 1.75rem;
+    .article-sidebar {
+      flex-direction: column;
     }
-
-    .event-sidebar {
-      grid-template-columns: 1fr;
-    }
-
-    .info-card {
-      grid-column: span 1;
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     DEFINITION BLOCK - Critical for AI citation
-     ═══════════════════════════════════════════════════════════════ */
-  .definition-block {
-    padding: 2rem;
-    background: var(--bg-warm);
-    border-radius: 12px;
-    margin-bottom: 2.5rem;
-    border-left: 4px solid var(--accent);
-  }
-
-  .definition-block h2 {
-    font-size: 1.3rem;
-    margin-bottom: 1rem;
-    color: var(--text);
-  }
-
-  .definition-text {
-    font-size: 1.1rem;
-    line-height: 1.8;
-    color: var(--text);
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     FESTIVAL FACTS TABLE
-     ═══════════════════════════════════════════════════════════════ */
-  .festival-facts {
-    margin-bottom: 2.5rem;
-  }
-
-  .festival-facts h2 {
-    font-size: 1.3rem;
-    margin-bottom: 1rem;
-  }
-
-  .facts-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  .facts-table tr {
-    border-bottom: 1px solid var(--border);
-  }
-
-  .facts-table tr:last-child {
-    border-bottom: none;
-  }
-
-  .facts-table th {
-    text-align: left;
-    padding: 0.875rem 1rem;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    background: var(--bg-warm);
-    width: 35%;
-    vertical-align: top;
-  }
-
-  .facts-table td {
-    padding: 0.875rem 1rem;
-    font-size: 0.95rem;
-    color: var(--text);
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     CROSS-LINKS
-     ═══════════════════════════════════════════════════════════════ */
-  .related-section {
-    margin-top: 2.5rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--border);
-  }
-
-  .related-section h2 {
-    font-size: 1.2rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .cross-link-text {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    line-height: 1.6;
-  }
-
-  .cross-link-text a {
-    color: var(--accent);
-    text-decoration: underline;
-  }
-
-  .cross-link-text a:hover {
-    color: var(--accent-hover);
   }
 </style>

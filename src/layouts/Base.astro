@@ -11,19 +11,16 @@ interface Props {
 const { title, description = "Discover festivals and cultural events in Morocco", image, settings: passedSettings } = Astro.props;
 const currentPath = Astro.url.pathname;
 
-// Use passed settings or fetch defaults
 const settings = passedSettings || await getSiteSettings();
 
-// Fetch legal pages from Nexus at build time
 let legalPages = [];
 try {
   legalPages = await getLegalPages();
 } catch (e) {
   legalPages = [
-    { label: "Privacy Policy", href: "/privacy" },
-    { label: "Terms of Service", href: "/terms" },
-    { label: "Disclaimer", href: "/disclaimer" },
-    { label: "Intellectual Property", href: "/intellectual-property" }
+    { label: "Privacy", href: "/privacy" },
+    { label: "Terms", href: "/terms" },
+    { label: "Disclaimer", href: "/disclaimer" }
   ];
 }
 ---
@@ -34,707 +31,568 @@ try {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <!-- Primary Meta Tags -->
   <title>{title}</title>
   <meta name="title" content={title}>
   <meta name="description" content={description}>
-  <meta name="keywords" content="Morocco festivals, Moroccan events, cultural festivals Morocco, Marrakech festivals, Fes festivals, Essaouira festivals, Gnaoua festival, Morocco travel, Moroccan culture, African festivals">
   <meta name="author" content="Slow Morocco">
   <meta name="robots" content="index, follow">
-  <meta name="language" content="English">
   
-  <!-- Canonical URL -->
   <link rel="canonical" href={`https://festivalsinmorocco.com${currentPath}`}>
-  
-  <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   
-  <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
   <meta property="og:url" content={`https://festivalsinmorocco.com${currentPath}`}>
   <meta property="og:title" content={title}>
   <meta property="og:description" content={description}>
   <meta property="og:image" content={image || "https://festivalsinmorocco.com/og-image.jpg"}>
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
   <meta property="og:site_name" content="Festivals in Morocco">
-  <meta property="og:locale" content="en_US">
   
-  <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content={`https://festivalsinmorocco.com${currentPath}`}>
   <meta name="twitter:title" content={title}>
   <meta name="twitter:description" content={description}>
-  <meta name="twitter:image" content={image || "https://festivalsinmorocco.com/og-image.jpg"}>
   
-  <!-- Geographic Meta Tags -->
-  <meta name="geo.region" content="MA">
-  <meta name="geo.country" content="Morocco">
-  <meta name="geo.placename" content="Morocco">
-  <meta name="geo.position" content="31.7917;-7.0926">
-  <meta name="ICBM" content="31.7917, -7.0926">
-  
-  <!-- GEO: Generative Engine Optimization - AI Citation Tags -->
-  <!-- These help AI systems (ChatGPT, Perplexity, Google AI) cite your content -->
-  
-  <!-- Citation metadata -->
+  <!-- GEO: AI Citation Tags -->
   <meta name="citation_title" content={title}>
   <meta name="citation_author" content="Festivals in Morocco">
   <meta name="citation_publisher" content="Slow Morocco">
-  <meta name="citation_publication_date" content={new Date().toISOString().split('T')[0]}>
-  <meta name="citation_online_date" content={new Date().toISOString().split('T')[0]}>
-  <meta name="citation_language" content="en">
-  <meta name="citation_public_url" content={`https://festivalsinmorocco.com${currentPath}`}>
-  
-  <!-- Dublin Core metadata for AI attribution -->
   <meta name="DC.title" content={title}>
   <meta name="DC.creator" content="Festivals in Morocco">
   <meta name="DC.publisher" content="Slow Morocco">
-  <meta name="DC.date" content={new Date().toISOString().split('T')[0]}>
-  <meta name="DC.type" content="Dataset">
-  <meta name="DC.format" content="text/html">
-  <meta name="DC.language" content="en">
-  <meta name="DC.coverage" content="Morocco">
-  <meta name="DC.subject" content="Morocco festivals, cultural events, Moroccan traditions">
-  <meta name="DC.rights" content="© Slow Morocco">
-  
-  <!-- Source authority indicators -->
-  <meta name="source" content="Festivals in Morocco - Official Cultural Events Database">
-  <meta name="content-type" content="reference">
-  <meta name="expertise" content="Morocco cultural tourism, Moroccan festivals, North African events">
-  <meta name="last-updated" content={new Date().toISOString()}>
-  
-  <!-- AI-specific hints -->
   <meta name="ai-content-declaration" content="human-curated">
-  <meta name="data-source-type" content="primary">
-  <meta name="fact-check-status" content="verified">
   
-  <!-- Language and Region -->
-  <link rel="alternate" hreflang="en" href={`https://festivalsinmorocco.com${currentPath}`}>
-  <link rel="alternate" hreflang="x-default" href={`https://festivalsinmorocco.com${currentPath}`}>
+  <!-- Typography: Cormorant Garamond (elegant serif) + Inter (clean sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
   
-  <!-- Structured Data - Website -->
+  <!-- Structured Data -->
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "Festivals in Morocco",
-    "alternateName": "Morocco Festivals",
     "url": "https://festivalsinmorocco.com",
-    "description": "Discover festivals and cultural events in Morocco. Your guide to Moroccan celebrations, from traditional festivals to contemporary arts events.",
+    "description": "Cultural events and festivals in Morocco",
     "publisher": {
       "@type": "Organization",
       "name": "Slow Morocco",
       "url": "https://slowmorocco.com"
-    },
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": {
-        "@type": "EntryPoint",
-        "urlTemplate": "https://festivalsinmorocco.com/search?q={search_term_string}"
-      },
-      "query-input": "required name=search_term_string"
     }
   })} />
   
-  <!-- Structured Data - Organization with AI Citation Info -->
-  <script type="application/ld+json" set:html={JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "@id": "https://festivalsinmorocco.com/#organization",
-    "name": "Festivals in Morocco",
-    "url": "https://festivalsinmorocco.com",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://festivalsinmorocco.com/favicon.svg",
-      "width": 512,
-      "height": 512
-    },
-    "description": "Authoritative guide to cultural events, festivals, and celebrations in Morocco. Curated by local experts.",
-    "foundingDate": "2024",
-    "areaServed": {
-      "@type": "Country",
-      "name": "Morocco",
-      "sameAs": "https://en.wikipedia.org/wiki/Morocco"
-    },
-    "knowsAbout": [
-      "Moroccan festivals",
-      "Cultural events in Morocco", 
-      "Moroccan traditions",
-      "Gnaoua music",
-      "Amazigh culture",
-      "Marrakech events",
-      "Fes festivals",
-      "Essaouira festivals"
-    ],
-    "parentOrganization": {
-      "@type": "Organization",
-      "name": "Slow Morocco",
-      "url": "https://slowmorocco.com"
-    },
-    "sameAs": []
-  })} />
-
-  <!-- Speakable Schema - Helps AI identify citable content -->
-  <script type="application/ld+json" set:html={JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "@id": `https://festivalsinmorocco.com${currentPath}#webpage`,
-    "url": `https://festivalsinmorocco.com${currentPath}`,
-    "name": title,
-    "description": description,
-    "isPartOf": {
-      "@id": "https://festivalsinmorocco.com/#website"
-    },
-    "about": {
-      "@type": "Thing",
-      "name": "Festivals and Cultural Events in Morocco"
-    },
-    "mentions": {
-      "@type": "Country",
-      "name": "Morocco",
-      "sameAs": "https://en.wikipedia.org/wiki/Morocco"
-    },
-    "speakable": {
-      "@type": "SpeakableSpecification",
-      "cssSelector": ["h1", ".hero-subtitle", ".page-intro", ".event-description", "article p"]
-    },
-    "mainEntity": {
-      "@type": "ItemList",
-      "name": "Morocco Festival Guide",
-      "description": "Comprehensive listing of cultural events and festivals in Morocco"
-    },
-    "publisher": {
-      "@id": "https://festivalsinmorocco.com/#organization"
-    },
-    "inLanguage": "en",
-    "datePublished": "2024-01-01",
-    "dateModified": new Date().toISOString().split('T')[0]
-  })} />
-
-  <!-- Knowledge Graph / Entity Connection -->
-  <script type="application/ld+json" set:html={JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "TouristDestination",
-    "name": "Morocco",
-    "description": "Kingdom of Morocco - North African country known for its rich cultural heritage, festivals, and traditions",
-    "sameAs": [
-      "https://en.wikipedia.org/wiki/Morocco",
-      "https://www.wikidata.org/wiki/Q1028"
-    ],
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": 31.7917,
-      "longitude": -7.0926
-    },
-    "touristType": ["Cultural tourism", "Festival tourism", "Heritage tourism"],
-    "includesAttraction": [
-      {
-        "@type": "City",
-        "name": "Marrakech",
-        "sameAs": "https://en.wikipedia.org/wiki/Marrakech"
-      },
-      {
-        "@type": "City", 
-        "name": "Fes",
-        "sameAs": "https://en.wikipedia.org/wiki/Fez,_Morocco"
-      },
-      {
-        "@type": "City",
-        "name": "Essaouira", 
-        "sameAs": "https://en.wikipedia.org/wiki/Essaouira"
-      }
-    ]
-  })} />
-  
-  <!-- Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5M0G4CTG3"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-C5M0G4CTG3');
-  </script>
-  
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-  
-  <!-- View Transitions -->
-  <meta name="view-transition" content="same-origin">
-  
   <style is:global>
-    * {
+    /* ═══════════════════════════════════════════════════════════════════════════
+       EDITORIAL MINIMALIST DESIGN SYSTEM
+       Inspired by: Kinfolk, Cereal, SSENSE, Aesop, Fondazione Prada, Gagosian
+       
+       Philosophy: The design recedes so the content can speak.
+       Like a gallery with white walls, concrete floors, and perfect lighting.
+    ═══════════════════════════════════════════════════════════════════════════ */
+
+    :root {
+      /* WARM NEUTRALS - No stark black/white */
+      --paper: #FAF9F7;
+      --paper-warm: #F5F3EF;
+      --stone: #E8E4DE;
+      --stone-dark: #D4CFC6;
+      --sand: #C4BEB4;
+      --warm-gray: #8A857D;
+      --charcoal: #3A3835;
+      --charcoal-soft: #4A4744;
+      --ink: #1A1917;
+      
+      /* Accent - muted terracotta */
+      --terracotta: #B8705B;
+      --terracotta-dark: #9A5A48;
+      
+      /* Typography */
+      --font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      
+      /* Spacing - generous breathing room */
+      --space-xs: 0.5rem;
+      --space-sm: 1rem;
+      --space-md: 2rem;
+      --space-lg: 4rem;
+      --space-xl: 6rem;
+      --space-2xl: 10rem;
+      
+      /* Transitions - subtle, unhurried */
+      --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+      --duration: 0.5s;
+      --duration-fast: 0.3s;
+      
+      /* Layout */
+      --max-width: 1440px;
+      --reading-width: 720px;
+      --content-width: 1200px;
+    }
+
+    *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
 
-    :root {
-      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-      --font-serif: 'Libre Baskerville', Georgia, serif;
-
-      /* Warm Neutral Palette */
-      --bg: #FAF8F5;
-      --bg-warm: #F5F1EB;
-      --bg-card: #FFFFFF;
-      --bg-hover: #F0EDE8;
-
-      --text: #2C2825;
-      --text-muted: #6B665E;
-      --text-light: #9A948A;
-
-      --border: #E8E4DD;
-      --border-light: #F0ECE6;
-
-      /* Primary - Warm Sage */
-      --accent: #5A6F5E;
-      --accent-hover: #4A5C4D;
-      --accent-light: #EDF2EE;
-      --accent-contrast: #FFFFFF;
-
-      /* Secondary - Terracotta */
-      --terracotta: #B8705B;
-      --terracotta-light: #F8F0ED;
-
-      /* Categories */
-      --category-rooted: #5A6F5E;
-      --category-rooted-bg: #EDF2EE;
-      --category-hybrid: #7A706A;
-      --category-hybrid-bg: #F3F0ED;
-      --category-imported: #6B7B8A;
-      --category-imported-bg: #EEF1F4;
-
-      /* Status */
-      --status-confirmed: #5A6F5E;
-      --status-confirmed-bg: #EDF2EE;
-      --status-announced: #7A8A6B;
-      --status-announced-bg: #F0F3ED;
-      --status-tentative: #8A7A5A;
-      --status-tentative-bg: #F5F2EB;
-
-      --sacred: #8A5A50;
-      --sacred-bg: #F5EFED;
-
-      /* Footer Ombre */
-      --footer-1: #5A6F5E;
-      --footer-2: #4A5C4D;
-      --footer-3: #3A4A3D;
-
-      /* Shadows */
-      --shadow-sm: 0 1px 2px rgba(44, 40, 37, 0.04);
-      --shadow-md: 0 4px 12px rgba(44, 40, 37, 0.08);
-      --shadow-lg: 0 8px 24px rgba(44, 40, 37, 0.12);
-
-      --transition-fast: 150ms ease;
-      --transition-base: 250ms ease;
-      --transition-slow: 400ms ease;
+    html {
+      font-size: 16px;
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    ::view-transition-old(root) {
-      animation: 200ms ease-out both fade-out;
-    }
-    ::view-transition-new(root) {
-      animation: 300ms ease-out both fade-in;
-    }
-    @keyframes fade-out { to { opacity: 0; } }
-    @keyframes fade-in { from { opacity: 0; } }
 
     body {
       font-family: var(--font-sans);
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
+      font-weight: 400;
+      font-size: 0.9375rem;
+      line-height: 1.7;
+      color: var(--charcoal);
+      background: var(--paper);
       min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
     }
 
-    a { color: inherit; text-decoration: none; }
-    img { max-width: 100%; height: auto; }
-
-    .container {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 1.5rem;
+    /* Subtle noise texture overlay - gallery paper texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.02;
+      pointer-events: none;
+      z-index: 9999;
     }
 
-    h1, h2, h3 {
+    /* ═══════════════════════════════════════════════════════════════════════════
+       TYPOGRAPHY
+    ═══════════════════════════════════════════════════════════════════════════ */
+    
+    h1, h2, h3, h4, h5, h6 {
       font-family: var(--font-serif);
       font-weight: 400;
-      line-height: 1.25;
+      line-height: 1.15;
+      color: var(--ink);
+      letter-spacing: -0.02em;
     }
 
-    /* Header */
+    h1 { 
+      font-size: clamp(2.75rem, 7vw, 5rem); 
+      line-height: 1.05;
+    }
+    
+    h2 { 
+      font-size: clamp(2rem, 4vw, 3rem); 
+    }
+    
+    h3 { 
+      font-size: clamp(1.5rem, 2.5vw, 2rem); 
+    }
+    
+    h4 { 
+      font-size: 1.25rem; 
+    }
+
+    p {
+      color: var(--charcoal-soft);
+      max-width: var(--reading-width);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--ease-out),
+                  opacity var(--duration-fast) var(--ease-out);
+    }
+
+    /* MICRO-LABELS - uppercase, wide letter-spacing (signature element) */
+    .micro-label {
+      font-family: var(--font-sans);
+      font-size: 0.6875rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--warm-gray);
+    }
+
+    /* Large display text */
+    .display-text {
+      font-family: var(--font-serif);
+      font-size: clamp(3rem, 8vw, 6rem);
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════════════════════════════════════ */
+    
+    .container {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--space-md);
+    }
+
+    .container--narrow {
+      max-width: var(--content-width);
+    }
+
+    .section {
+      padding: var(--space-xl) 0;
+    }
+
+    .section--large {
+      padding: var(--space-2xl) 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       BUTTONS & LINKS
+    ═══════════════════════════════════════════════════════════════════════════ */
+    
+    .view-all {
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--warm-gray);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid transparent;
+      transition: all var(--duration) var(--ease-out);
+    }
+
+    .view-all::after {
+      content: '→';
+      transition: transform var(--duration) var(--ease-out);
+    }
+
+    .view-all:hover {
+      color: var(--ink);
+      border-bottom-color: var(--ink);
+    }
+
+    .view-all:hover::after {
+      transform: translateX(4px);
+    }
+
+    /* Button - minimal, inverts on hover */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 1rem 2rem;
+      border: 1px solid var(--charcoal);
+      background: transparent;
+      color: var(--charcoal);
+      cursor: pointer;
+      transition: all var(--duration) var(--ease-out);
+    }
+
+    .btn:hover {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: var(--paper);
+    }
+
+    .btn--filled {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .btn--filled:hover {
+      background: var(--charcoal-soft);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SELECTION & FOCUS
+    ═══════════════════════════════════════════════════════════════════════════ */
+    
+    ::selection {
+      background: var(--terracotta);
+      color: var(--paper);
+    }
+
+    :focus-visible {
+      outline: 1px solid var(--ink);
+      outline-offset: 3px;
+    }
+
+    /* Scrollbar - minimal */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--stone);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--sand);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--warm-gray);
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+  </style>
+
+  <style>
+    /* ═══════════════════════════════════════════════════════════════════════════
+       HEADER - Understated, transparent over hero
+    ═══════════════════════════════════════════════════════════════════════════ */
     header {
-      border-bottom: none;
-      padding: 1.25rem 0;
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      background: transparent;
       z-index: 100;
-      transition: background var(--transition-base), border-color var(--transition-base);
+      padding: var(--space-md) 0;
+      transition: background var(--duration) var(--ease-out), 
+                  backdrop-filter var(--duration) var(--ease-out);
     }
 
     header.scrolled {
-      background: rgba(250, 248, 245, 0.95);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    header.scrolled .logo,
-    header.scrolled nav a {
-      color: var(--text);
-    }
-
-    header.scrolled nav a:not(.active) {
-      color: var(--text-muted);
+      background: rgba(250, 249, 247, 0.92);
+      backdrop-filter: blur(20px);
     }
 
     header .container {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 2rem;
     }
 
     .logo {
       font-family: var(--font-serif);
-      font-weight: 400;
       font-size: 1.125rem;
-      letter-spacing: -0.01em;
-      color: #fff;
-      transition: color var(--transition-base);
-      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: var(--ink);
+      transition: opacity var(--duration) var(--ease-out);
+    }
+
+    .logo:hover {
+      opacity: 0.6;
+    }
+
+    /* Header over hero - light text */
+    header:not(.scrolled) .logo,
+    header:not(.scrolled) nav a {
+      color: var(--paper);
+    }
+
+    header:not(.scrolled) .menu-toggle span {
+      background: var(--paper);
     }
 
     nav {
       display: flex;
-      gap: 2rem;
+      align-items: center;
+      gap: var(--space-lg);
     }
 
     nav a {
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 0.875rem;
-      letter-spacing: 0.02em;
-      transition: color var(--transition-fast), text-shadow var(--transition-fast);
+      font-family: var(--font-sans);
+      font-size: 0.6875rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--charcoal);
       position: relative;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      padding: 0.375rem 0;
     }
 
     nav a::after {
       content: '';
       position: absolute;
-      bottom: -4px;
+      bottom: 0;
       left: 0;
       width: 0;
       height: 1px;
-      background: #fff;
-      transition: width var(--transition-base), background var(--transition-base);
+      background: currentColor;
+      transition: width var(--duration) var(--ease-out);
     }
 
-    nav a:hover, nav a.active { color: #fff; }
-    nav a.active::after { width: 100%; }
-
-    header.scrolled .logo {
-      text-shadow: none;
+    nav a:hover::after,
+    nav a.active::after {
+      width: 100%;
     }
 
-    header.scrolled nav a {
-      text-shadow: none;
+    .menu-toggle {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      padding: 0.5rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      z-index: 201;
     }
 
-    header.scrolled nav a::after {
-      background: var(--accent);
+    .menu-toggle span {
+      display: block;
+      width: 24px;
+      height: 1px;
+      background: var(--ink);
+      transition: all 0.3s var(--ease-out);
     }
 
+    .menu-overlay {
+      display: none;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       MAIN
+    ═══════════════════════════════════════════════════════════════════════════ */
     main {
-      min-height: 60vh;
-      animation: fadeIn 400ms ease-out;
+      min-height: 100vh;
     }
 
     main.with-padding {
-      padding: 6rem 0 5rem; /* 6rem top accounts for fixed header */
+      padding-top: calc(var(--space-xl) + 80px);
+      padding-bottom: var(--space-xl);
     }
 
-    /* ═══════════════════════════════════════════════════════════════
-       FOOTER - 3-Level Ombre
-       ═══════════════════════════════════════════════════════════════ */
-    
-    .footer-newsletter {
-      padding: 4rem 0;
-      position: relative;
+    /* ═══════════════════════════════════════════════════════════════════════════
+       FOOTER - Ombre effect (quiet luxury)
+    ═══════════════════════════════════════════════════════════════════════════ */
+    footer {
+      margin-top: var(--space-2xl);
     }
 
-    .footer-newsletter.no-image {
-      background: var(--footer-1);
-    }
-
-    .footer-newsletter::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%);
-      pointer-events: none;
-    }
-
-    .newsletter-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      background: rgba(0, 0, 0, 0.4);
-      pointer-events: none;
-    }
-
-    .footer-newsletter .container {
-      position: relative;
-      z-index: 2;
-      text-align: center;
-      max-width: 540px;
-    }
-
-    .footer-newsletter h3 {
-      color: #fff;
-      font-size: 1.75rem;
-      margin-bottom: 0.75rem;
-    }
-
-    .footer-newsletter p {
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 0.9rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .newsletter-form {
-      display: flex;
-      gap: 0.75rem;
-      max-width: 400px;
-      margin: 0 auto;
-    }
-
-    .newsletter-form input {
-      flex: 1;
-      padding: 0.875rem 1rem;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 6px;
-      color: #fff;
-      font-size: 0.9rem;
-    }
-
-    .newsletter-form input::placeholder { color: rgba(255, 255, 255, 0.4); }
-    .newsletter-form input:focus {
-      outline: none;
-      border-color: rgba(255, 255, 255, 0.4);
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    .newsletter-form button {
-      padding: 0.875rem 1.5rem;
-      background: #fff;
-      color: var(--footer-1);
-      border: none;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-
-    .newsletter-form button:hover {
-      background: rgba(255, 255, 255, 0.9);
-      transform: translateY(-1px);
-    }
-
-    /* Footer Authority Statement */
     .footer-authority {
-      background: var(--footer-1, #1f1f1f);
-      padding: 2rem 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      background: var(--stone);
+      padding: var(--space-lg) 0;
     }
 
     .authority-statement {
-      max-width: 700px;
-      margin: 0 auto;
-      text-align: center;
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 0.9rem;
-      line-height: 1.7;
+      font-size: 0.875rem;
+      line-height: 1.9;
+      color: var(--charcoal-soft);
+      max-width: var(--reading-width);
     }
 
     .authority-statement strong {
-      color: rgba(255, 255, 255, 0.85);
+      color: var(--ink);
+      font-weight: 500;
     }
 
     .footer-nav {
-      background: var(--footer-2);
-      padding: 2.5rem 0;
+      background: #2A2825;
+      padding: var(--space-lg) 0;
     }
 
     .footer-nav .container {
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
-      gap: 1.5rem 3rem;
+      gap: var(--space-lg);
+      flex-wrap: wrap;
     }
 
     .footer-nav a {
-      color: rgba(255, 255, 255, 0.65);
-      font-size: 0.875rem;
-      transition: color var(--transition-fast);
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: rgba(250, 249, 247, 0.4);
+      transition: color var(--duration) var(--ease-out);
     }
 
-    .footer-nav a:hover { color: #fff; }
+    .footer-nav a:hover {
+      color: rgba(250, 249, 247, 0.9);
+    }
 
     .footer-legal {
-      background: var(--footer-3);
-      padding: 1.25rem 0;
+      background: #1F1E1C;
+      padding: var(--space-md) 0;
     }
 
     .footer-legal .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.75rem;
+      text-align: center;
     }
 
     .legal-links {
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
-      gap: 0.75rem 1.5rem;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-sm);
     }
 
     .legal-links a {
-      color: rgba(255, 255, 255, 0.4);
-      font-size: 0.7rem;
+      font-size: 0.625rem;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      transition: color var(--transition-fast);
+      letter-spacing: 0.1em;
+      color: rgba(250, 249, 247, 0.25);
+      transition: color var(--duration) var(--ease-out);
     }
 
-    .legal-links a:hover { color: rgba(255, 255, 255, 0.7); }
+    .legal-links a:hover {
+      color: rgba(250, 249, 247, 0.5);
+    }
 
     .footer-bottom {
+      font-size: 0.625rem;
+      letter-spacing: 0.05em;
+      color: rgba(250, 249, 247, 0.2);
       display: flex;
+      justify-content: center;
       align-items: center;
-      gap: 0.5rem;
-      color: rgba(255, 255, 255, 0.3);
-      font-size: 0.7rem;
+      gap: var(--space-sm);
     }
 
     .footer-bottom a {
-      color: rgba(255, 255, 255, 0.4);
-      transition: color var(--transition-fast);
+      color: rgba(250, 249, 247, 0.35);
     }
 
-    .footer-bottom a:hover { color: rgba(255, 255, 255, 0.6); }
-
-    /* ═══════════════════════════════════════════════════════════════
-       UTILITY CLASSES
-       ═══════════════════════════════════════════════════════════════ */
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 100px;
-      font-size: 0.7rem;
-      font-weight: 500;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
+    .footer-bottom a:hover {
+      color: rgba(250, 249, 247, 0.6);
     }
 
-    .badge-accent { background: var(--accent-light); color: var(--accent); }
-    .badge-terracotta { background: var(--terracotta-light); color: var(--terracotta); }
-    .badge-sacred { background: var(--sacred-bg); color: var(--sacred); }
-    .badge-outline { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
-
-    .img-zoom { overflow: hidden; }
-    .img-zoom img { transition: transform 600ms ease; }
-    .img-zoom:hover img { transform: scale(1.05); }
-
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      transition: all var(--transition-base);
-    }
-
-    .card:hover {
-      border-color: var(--accent);
-      box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
-    }
-
-    .section { padding: 4rem 0; }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-bottom: 2rem;
-    }
-
-    .section-header h2 { font-size: 1.75rem; }
-
-    .section-header .subtitle {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      margin-top: 0.5rem;
-    }
-
-    .view-all {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      transition: color var(--transition-fast);
-    }
-
-    .view-all:hover { color: var(--accent); }
-    .view-all::after { content: '→'; transition: transform var(--transition-fast); }
-    .view-all:hover::after { transform: translateX(3px); }
-
+    /* ═══════════════════════════════════════════════════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════════════════════════════════════════════════ */
     @media (max-width: 768px) {
+      :root {
+        --space-lg: 3rem;
+        --space-xl: 4rem;
+        --space-2xl: 6rem;
+      }
+
       .container {
-        padding: 0 1rem;
+        padding: 0 var(--space-sm);
       }
 
-      header .container {
-        position: relative;
-      }
-
-      .logo {
-        font-size: 1rem;
+      .menu-toggle {
+        display: flex;
       }
 
       nav {
         position: fixed;
         top: 0;
         right: -100%;
-        width: 75%;
-        max-width: 300px;
+        width: 100%;
         height: 100vh;
-        background: var(--bg);
+        background: var(--paper);
         flex-direction: column;
-        padding: 5rem 2rem 2rem;
-        gap: 0;
-        box-shadow: -4px 0 24px rgba(0,0,0,0.1);
-        transition: right 0.3s ease;
+        justify-content: center;
+        gap: var(--space-md);
+        transition: right 0.5s var(--ease-out);
         z-index: 200;
       }
 
@@ -743,38 +601,15 @@ try {
       }
 
       nav a {
-        color: var(--text);
-        font-size: 1.1rem;
-        padding: 1rem 0;
-        border-bottom: 1px solid var(--border);
-        text-shadow: none;
+        font-size: 1.25rem;
+        text-transform: none;
+        letter-spacing: 0.02em;
+        font-family: var(--font-serif);
+        color: var(--ink);
       }
 
-      nav a:last-child {
-        border-bottom: none;
-      }
-
-      .menu-toggle {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        padding: 0.5rem;
-        background: none;
-        border: none;
-        cursor: pointer;
-        z-index: 201;
-      }
-
-      .menu-toggle span {
-        display: block;
-        width: 24px;
-        height: 2px;
-        background: #fff;
-        transition: all 0.3s ease;
-      }
-
-      header.scrolled .menu-toggle span {
-        background: var(--text);
+      .menu-toggle.open span {
+        background: var(--ink);
       }
 
       .menu-toggle.open span:nth-child(1) {
@@ -793,7 +628,7 @@ try {
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.5);
+        background: rgba(26, 25, 23, 0.3);
         z-index: 199;
       }
 
@@ -801,36 +636,13 @@ try {
         display: block;
       }
 
-      .newsletter-form { 
-        flex-direction: column; 
-      }
-      
-      .footer-nav .container { 
-        flex-direction: column;
-        align-items: center;
-        gap: 0.75rem; 
-      }
-
-      .footer-newsletter {
-        padding: 3rem 0;
-      }
-
-      .footer-newsletter h3 {
-        font-size: 1.5rem;
-      }
-
-      .legal-links {
-        gap: 0.5rem 1rem;
+      .footer-nav .container {
+        gap: var(--space-sm) var(--space-md);
       }
 
       main.with-padding {
-        padding: 5rem 0 3rem;
+        padding-top: calc(var(--space-lg) + 60px);
       }
-    }
-
-    /* Hide hamburger on desktop */
-    .menu-toggle {
-      display: none;
     }
   </style>
 </head>
@@ -855,13 +667,12 @@ try {
 
   <main class:list={[{ 'with-padding': !Astro.slots.has('hero') }]}>
     <slot name="hero" />
-    <div class="container">
+    <div class="container container--narrow">
       <slot />
     </div>
   </main>
 
   <footer>
-    <!-- AUTHORITY STATEMENT - Critical for AI citation -->
     <div class="footer-authority">
       <div class="container">
         <p class="authority-statement">
@@ -875,7 +686,7 @@ try {
         <a href="/traditions">Traditions</a>
         <a href="/cities">Cities</a>
         <a href="/map">Map</a>
-        <a href="/submit">Submit Event</a>
+        <a href="/submit">Submit</a>
       </div>
     </div>
     <div class="footer-legal">
@@ -887,8 +698,6 @@ try {
         </div>
         <div class="footer-bottom">
           <span>© {new Date().getFullYear()} Slow Morocco</span>
-          <span>·</span>
-          <span>Powered by <a href="https://slowmorocco.com" target="_blank" rel="noopener">Slow Morocco</a></span>
         </div>
       </div>
     </div>
@@ -897,12 +706,11 @@ try {
   <script>
     // Header scroll effect
     const header = document.querySelector('header');
-    const hero = document.querySelector('.hero') || document.querySelector('.event-hero');
+    const hero = document.querySelector('.hero') || document.querySelector('.page-hero');
     
     function updateHeader() {
       if (!header) return;
       
-      // If no hero, always show scrolled state (dark text)
       if (!hero) {
         header.classList.add('scrolled');
         return;
@@ -921,7 +729,7 @@ try {
     window.addEventListener('scroll', updateHeader, { passive: true });
     updateHeader();
 
-    // Mobile menu toggle
+    // Mobile menu
     const menuToggle = document.getElementById('menu-toggle');
     const nav = document.getElementById('nav');
     const menuOverlay = document.getElementById('menu-overlay');
@@ -936,7 +744,6 @@ try {
     menuToggle?.addEventListener('click', toggleMenu);
     menuOverlay?.addEventListener('click', toggleMenu);
 
-    // Close menu on nav link click
     nav?.querySelectorAll('a').forEach(link => {
       link.addEventListener('click', () => {
         if (nav.classList.contains('open')) {

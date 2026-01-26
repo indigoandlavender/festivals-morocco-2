@@ -1,71 +1,35 @@
 ---
 import Base from '../layouts/Base.astro';
 import { getSiteSettings, getSheetEvents, type SheetEvent } from '../lib/sheets';
-import {
-  getCities,
-  getTraditions,
-  TraditionCategory,
-  MUSIC_TRADITIONS
-} from '../lib/api';
+import { getCities, getTraditions, TraditionCategory } from '../lib/api';
 
-// Fetch site settings and events from Google Sheets
 const settings = await getSiteSettings();
 const sheetEvents = await getSheetEvents();
 
-// Sort by date, filter upcoming
 const today = new Date().toISOString().split('T')[0];
 const upcoming = sheetEvents
   .filter(e => e.startDate && e.startDate >= today)
   .sort((a, b) => a.startDate.localeCompare(b.startDate))
   .slice(0, 12);
 
-const featured = sheetEvents.slice(0, 3);
-
+const featured = sheetEvents.slice(0, 6);
 const cities = getCities().slice(0, 8);
 const traditions = getTraditions();
+const rootedTraditions = traditions.filter(t => t.category === TraditionCategory.ROOTED).slice(0, 6);
 
-const rootedTraditions = traditions.filter(t => t.category === TraditionCategory.ROOTED).slice(0, 8);
-const hybridTraditions = traditions.filter(t => t.category === TraditionCategory.HYBRID).slice(0, 4);
-
-// Group upcoming events by month for timeline
-const eventsByMonth = upcoming.reduce((acc, event) => {
-  const start = event.startDate;
-  if (!start) return acc;
-  const date = new Date(start);
-  const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-  if (!acc[key]) acc[key] = [];
-  acc[key].push(event);
-  return acc;
-}, {} as Record<string, SheetEvent[]>);
-
-const months = Object.keys(eventsByMonth).sort().slice(0, 6);
-
-// Placeholder gradients for events without images
-const gradients = [
-  'linear-gradient(135deg, #5A6F5E 0%, #4A5C4D 100%)',
-  'linear-gradient(135deg, #B8705B 0%, #8A5A50 100%)',
-  'linear-gradient(135deg, #7A706A 0%, #5A5A5A 100%)',
-  'linear-gradient(135deg, #6B7B8A 0%, #4A5A6A 100%)',
-];
-
-// Helper to format date range
-function formatDateRange(start: string, end?: string): string {
-  const startDate = new Date(start);
-  const startStr = startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  
-  if (!end || end === start) return startStr;
-  
-  const endDate = new Date(end);
-  const endStr = endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  return `${startStr} – ${endStr}`;
+function formatDate(dateStr: string): { day: string; month: string; year: string } {
+  const date = new Date(dateStr);
+  return {
+    day: String(date.getDate()).padStart(2, '0'),
+    month: date.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase(),
+    year: String(date.getFullYear())
+  };
 }
 
-// Homepage structured data - ItemList of upcoming events
 const eventListSchema = {
   "@context": "https://schema.org",
   "@type": "ItemList",
   "name": "Upcoming Events in Morocco",
-  "description": "Festivals and cultural events happening in Morocco",
   "numberOfItems": Math.min(featured.length, 10),
   "itemListElement": featured.slice(0, 10).map((event, index) => ({
     "@type": "ListItem",
@@ -78,243 +42,194 @@ const eventListSchema = {
       "location": {
         "@type": "Place",
         "name": event.city,
-        "address": {
-          "@type": "PostalAddress",
-          "addressLocality": event.city,
-          "addressRegion": event.region,
-          "addressCountry": "Morocco"
-        }
-      },
-      ...(event.image ? { "image": event.image } : {})
+        "address": { "@type": "PostalAddress", "addressLocality": event.city, "addressCountry": "Morocco" }
+      }
     }
   }))
 };
 ---
 
-<Base title="Festivals in Morocco - Cultural Events & Celebrations" settings={settings}>
+<Base title="Festivals in Morocco — Cultural Events & Celebrations" settings={settings}>
   <script type="application/ld+json" set:html={JSON.stringify(eventListSchema)} />
-  <!-- HERO SECTION -->
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       HERO - Full screen, typographic, gallery aesthetic
+  ═══════════════════════════════════════════════════════════════════════════ -->
   <section class="hero" slot="hero">
     {settings.hero_image ? (
-      <div class="hero-bg" style={`background: url(${settings.hero_image}) center/cover no-repeat;`}></div>
+      <div class="hero-bg" style={`background-image: url(${settings.hero_image});`}></div>
     ) : (
-      <div class="hero-bg"></div>
+      <div class="hero-bg hero-bg--gradient"></div>
     )}
     <div class="hero-overlay"></div>
+    
     <div class="hero-content">
-      <span class="hero-label">{settings.hero_label}</span>
-      <h1>{settings.hero_title}</h1>
-      <p class="hero-subtitle">
-        {settings.hero_subtitle}
-      </p>
-      <form class="hero-search" action="/search" method="GET">
-        <div class="search-input-wrap">
-          <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input type="search" name="q" placeholder="Search events, traditions, cities..." autocomplete="off">
-        </div>
-        <button type="submit">Search</button>
-      </form>
-      <div class="hero-stats">
-        <div class="stat">
-          <span class="stat-number">{upcoming.length}+</span>
-          <span class="stat-label">Upcoming Events</span>
-        </div>
-        <div class="stat">
-          <span class="stat-number">{traditions.length}</span>
-          <span class="stat-label">Traditions</span>
-        </div>
-        <div class="stat">
-          <span class="stat-number">{cities.length}+</span>
-          <span class="stat-label">Cities</span>
-        </div>
+      <span class="micro-label hero-label">{settings.hero_label || 'Cultural Guide'}</span>
+      <h1 class="hero-title">{settings.hero_title || 'Festivals in Morocco'}</h1>
+      <p class="hero-subtitle">{settings.hero_subtitle || 'Discover cultural events and celebrations across Morocco'}</p>
+      
+      <a href="/events" class="btn hero-btn">Explore Events</a>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-number">{upcoming.length}</span>
+        <span class="stat-label">Upcoming</span>
       </div>
+      <div class="stat">
+        <span class="stat-number">{traditions.length}</span>
+        <span class="stat-label">Traditions</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number">{cities.length}</span>
+        <span class="stat-label">Cities</span>
+      </div>
+    </div>
+
+    <div class="hero-scroll">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
     </div>
   </section>
 
-  <!-- HORIZONTAL TIMELINE - Right below hero -->
-  {upcoming.length > 0 && (
-    <section class="timeline-section">
-      <div class="timeline-header">
-        <span class="timeline-label">Coming Up</span>
-        <a href="/events" class="timeline-view-all">View all →</a>
-      </div>
-      <div class="timeline-wrapper">
-        <div class="timeline-scroll" id="timeline">
-          {upcoming.map(event => {
-            const startDate = event.startDate ? new Date(event.startDate) : null;
-            return (
-              <a href={`/events/${event.slug}`} class="timeline-card">
-                <div class="tc-date">
-                  {startDate && (
-                    <>
-                      <span class="tc-day">{startDate.getDate()}</span>
-                      <span class="tc-month">{startDate.toLocaleDateString('en-GB', { month: 'short' })}</span>
-                    </>
-                  )}
-                </div>
-                <div class="tc-content">
-                  <h4>{event.title_en}</h4>
-                  <p class="tc-location">{event.city}</p>
-                </div>
-              </a>
-            );
-          })}
-        </div>
-        <button class="timeline-arrow" id="timeline-next" aria-label="Scroll right">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="m9 18 6-6-6-6"/>
-          </svg>
-        </button>
-      </div>
-    </section>
-  )}
-
-  <!-- FILTER PILLS -->
-  <section class="filter-section">
-    <div class="filter-pills">
-      <a href="/events" class="pill active">All Events</a>
-      <a href="/events?category=festival" class="pill">Festivals</a>
-      <a href="/events?category=concert" class="pill">Concerts</a>
-      <a href="/events?category=art" class="pill">Art</a>
-      <a href="/events?category=heritage" class="pill">Heritage</a>
-    </div>
-  </section>
-
-  <!-- FEATURED EVENTS -->
-  <section class="featured section">
-    <div class="section-header">
-      <div>
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       FEATURED - Asymmetric editorial grid
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <section class="section section--featured">
+    <header class="section-header">
+      <div class="section-header__text">
+        <span class="micro-label">Selected</span>
         <h2>Featured Events</h2>
-        <p class="subtitle">Major cultural moments worth planning around</p>
       </div>
-      <a href="/events" class="view-all">View all events</a>
-    </div>
+      <a href="/events" class="view-all">View All</a>
+    </header>
 
     <div class="featured-grid">
-      {featured.map((event, i) => {
-        const startDate = event.startDate ? new Date(event.startDate) : null;
-        const hasImage = event.image && event.image.startsWith('http');
-
+      {featured.slice(0, 2).map((event, i) => {
+        const date = event.startDate ? formatDate(event.startDate) : null;
         return (
-          <a href={`/events/${event.slug}`} class="featured-card img-zoom">
-            <div class="featured-image" style={hasImage ? `background: url(${event.image}) center/cover no-repeat` : `background: ${gradients[i % gradients.length]}`}>
-              <div class="featured-image-overlay"></div>
-              <span class="card-badge badge-accent">{event.category}</span>
-              <div class="featured-date">
-                {startDate && (
-                  <>
-                    <span class="date-day">{startDate.getDate()}</span>
-                    <span class="date-month">{startDate.toLocaleDateString('en-GB', { month: 'short' })}</span>
-                  </>
-                )}
-              </div>
+          <a href={`/events/${event.slug}`} class={`featured-card featured-card--${i === 0 ? 'large' : 'medium'}`}>
+            <div class="featured-card__image">
+              {event.image ? (
+                <img src={event.image} alt={event.title_en} loading="lazy" />
+              ) : (
+                <div class="featured-card__placeholder"></div>
+              )}
+              <div class="featured-card__overlay"></div>
             </div>
-            <div class="featured-content">
-              <h3>{event.title_en}</h3>
-              <p class="featured-location">{event.city}{event.region ? `, ${event.region}` : ''}</p>
-              
-              <p class="why-go">{event.description_en.substring(0, 120)}...</p>
-
-              {event.tags.length > 0 && (
-                <div class="featured-traditions">
-                  {event.tags.slice(0, 3).map(tag => (
-                    <span class="tradition-pill">{tag}</span>
-                  ))}
+            <div class="featured-card__content">
+              {date && (
+                <div class="featured-card__date">
+                  <span class="date-day">{date.day}</span>
+                  <span class="date-month">{date.month}</span>
                 </div>
               )}
+              <span class="micro-label">{event.category}</span>
+              <h3>{event.title_en}</h3>
+              <p class="featured-card__location">{event.city}</p>
             </div>
+          </a>
+        );
+      })}
+    </div>
+
+    <div class="featured-list">
+      {featured.slice(2, 6).map((event) => {
+        const date = event.startDate ? formatDate(event.startDate) : null;
+        return (
+          <a href={`/events/${event.slug}`} class="featured-list__item">
+            <div class="featured-list__date">
+              {date && (
+                <>
+                  <span class="date-day">{date.day}</span>
+                  <span class="date-month">{date.month}</span>
+                </>
+              )}
+            </div>
+            <div class="featured-list__content">
+              <span class="micro-label">{event.category}</span>
+              <h4>{event.title_en}</h4>
+              <p>{event.city}</p>
+            </div>
+            <div class="featured-list__arrow">→</div>
           </a>
         );
       })}
     </div>
   </section>
 
-  <!-- TWO COLUMN: TRADITIONS + CITIES -->
-  <div class="two-col section">
-    <section class="traditions-home">
-      <div class="section-header">
-        <div>
-          <h2>Cultural Traditions</h2>
-          <p class="subtitle">Living heritage, timeless practice</p>
-        </div>
-        <a href="/traditions" class="view-all">Explore all</a>
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       TRADITIONS - Horizontal scroll gallery
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <section class="section section--traditions">
+    <header class="section-header">
+      <div class="section-header__text">
+        <span class="micro-label">Heritage</span>
+        <h2>Cultural Traditions</h2>
       </div>
+      <a href="/traditions" class="view-all">Explore All</a>
+    </header>
 
-      <div class="tradition-grid">
-        {rootedTraditions.slice(0, 6).map((tradition, i) => (
-          <a href={`/traditions/${tradition.id}`} class="tradition-card-mini" data-sacred={tradition.sacred}>
-            <div class="tcm-icon" style={`background: ${gradients[i % gradients.length]}`}>
-              {tradition.sacred && <span class="sacred-diamond">◆</span>}
-            </div>
-            <div class="tcm-content">
-              <h4>{tradition.name}</h4>
-              {tradition.name_ar && <span class="tcm-ar">{tradition.name_ar}</span>}
-              <p class="tcm-desc">{tradition.description?.slice(0, 60)}...</p>
-              <span class="tcm-count">{tradition.count} events</span>
-            </div>
+    <div class="traditions-scroll-wrapper">
+      <div class="traditions-scroll" id="traditions-scroll">
+        {rootedTraditions.map((tradition, i) => (
+          <a href={`/traditions/${tradition.id}`} class="tradition-card">
+            <div class="tradition-card__number">{String(i + 1).padStart(2, '0')}</div>
+            <h3>{tradition.name}</h3>
+            {tradition.name_ar && <span class="tradition-card__ar">{tradition.name_ar}</span>}
+            <p>{tradition.description?.slice(0, 80)}...</p>
+            <span class="tradition-card__count">{tradition.count} events</span>
           </a>
         ))}
       </div>
+      <button class="scroll-arrow scroll-arrow--next" id="traditions-next" aria-label="Next">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="m9 18 6-6-6-6"/>
+        </svg>
+      </button>
+    </div>
+  </section>
 
-      {hybridTraditions.length > 0 && (
-        <div class="hybrid-tags">
-          <span class="hybrid-label">Contemporary:</span>
-          {hybridTraditions.map(tradition => (
-            <a href={`/traditions/${tradition.id}`} class="tag-pill hybrid">
-              {tradition.name}
-            </a>
-          ))}
-        </div>
-      )}
-    </section>
-
-    <section class="cities-home">
-      <div class="section-header">
-        <div>
-          <h2>Cities</h2>
-          <p class="subtitle">Find events by location</p>
-        </div>
-        <a href="/cities" class="view-all">All cities</a>
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       CITIES - Minimal grid with hover inversion
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <section class="section section--cities">
+    <header class="section-header">
+      <div class="section-header__text">
+        <span class="micro-label">Locations</span>
+        <h2>Cities</h2>
       </div>
+      <a href="/cities" class="view-all">All Cities</a>
+    </header>
 
-      <div class="city-grid">
-        {cities.map((city, i) => (
-          <a href={`/cities/${city.slug}`} class="city-card" style={`--delay: ${i * 50}ms`}>
-            <div class="city-card-bg" style={`background: ${gradients[i % gradients.length]}`}></div>
-            <div class="city-card-content">
-              <h4>{city.name}</h4>
-              <span class="city-count">{city.count} events</span>
-            </div>
-          </a>
-        ))}
-      </div>
-    </section>
-  </div>
+    <div class="cities-grid">
+      {cities.map((city) => (
+        <a href={`/cities/${city.slug}`} class="city-card">
+          <h3>{city.name}</h3>
+          <span class="city-card__count">{city.count} events</span>
+        </a>
+      ))}
+    </div>
+  </section>
 
-  <!-- MAP CTA -->
-  <section class="map-cta section">
-    <div class="map-cta-inner">
-      <div class="map-cta-content">
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       MAP CTA - Editorial minimal
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <section class="section section--map">
+    <div class="map-cta">
+      <div class="map-cta__content">
+        <span class="micro-label">Discover</span>
         <h2>Explore the Map</h2>
         <p>See all festivals and events across Morocco. Plan your route, discover what's happening near you.</p>
-        <a href="/map" class="map-cta-btn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>
-          Open Map
-        </a>
+        <a href="/map" class="btn">Open Map</a>
       </div>
-      <div class="map-cta-visual">
-        <div class="map-dots">
-          <span class="map-dot" style="top: 20%; left: 30%;"></span>
-          <span class="map-dot" style="top: 35%; left: 60%;"></span>
-          <span class="map-dot" style="top: 50%; left: 25%;"></span>
-          <span class="map-dot" style="top: 45%; left: 75%;"></span>
-          <span class="map-dot" style="top: 70%; left: 45%;"></span>
-          <span class="map-dot large" style="top: 60%; left: 35%;"></span>
+      <div class="map-cta__visual">
+        <div class="map-pattern">
+          <span class="dot" style="top: 25%; left: 35%;"></span>
+          <span class="dot" style="top: 40%; left: 65%;"></span>
+          <span class="dot" style="top: 55%; left: 28%;"></span>
+          <span class="dot" style="top: 48%; left: 78%;"></span>
+          <span class="dot dot--large" style="top: 62%; left: 40%;"></span>
         </div>
       </div>
     </div>
@@ -322,36 +237,40 @@ const eventListSchema = {
 </Base>
 
 <script>
-  // Timeline scroll with single arrow
-  const timeline = document.getElementById('timeline');
-  const nextBtn = document.getElementById('timeline-next');
+  // Traditions horizontal scroll
+  const traditionsScroll = document.getElementById('traditions-scroll');
+  const traditionsNext = document.getElementById('traditions-next');
   
-  if (timeline && nextBtn) {
-    const scrollAmount = 280;
-    
-    nextBtn.addEventListener('click', () => {
-      timeline.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  if (traditionsScroll && traditionsNext) {
+    traditionsNext.addEventListener('click', () => {
+      traditionsScroll.scrollBy({ left: 340, behavior: 'smooth' });
     });
-
-    // Hide arrow when scrolled to end
-    const updateArrowVisibility = () => {
-      const maxScroll = timeline.scrollWidth - timeline.clientWidth;
-      nextBtn.style.opacity = timeline.scrollLeft >= maxScroll - 10 ? '0' : '1';
-    };
-
-    timeline.addEventListener('scroll', updateArrowVisibility);
-    updateArrowVisibility();
   }
+
+  // Smooth reveal on scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.section').forEach(section => {
+    observer.observe(section);
+  });
 </script>
 
 <style>
-  /* ═══════════════════════════════════════════════════════════════
-     HERO
-     ═══════════════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════════════════════════════
+     HERO - Full screen, gallery aesthetic
+  ═══════════════════════════════════════════════════════════════════════════ */
   .hero {
     position: relative;
-    min-height: 85vh;
+    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     overflow: hidden;
@@ -360,116 +279,81 @@ const eventListSchema = {
   .hero-bg {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, #5A6F5E 0%, #3A4A3D 50%, #2C3830 100%);
+    background-size: cover;
+    background-position: center;
+    transform: scale(1.02);
+    transition: transform 8s var(--ease-out);
+  }
+
+  .hero-bg--gradient {
+    background: linear-gradient(145deg, #3A3835 0%, #2A2825 50%, #1A1917 100%);
+  }
+
+  .hero:hover .hero-bg {
+    transform: scale(1);
   }
 
   .hero-overlay {
     position: absolute;
     inset: 0;
-    background: 
-      linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.5) 100%),
-      radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.05) 0%, transparent 50%),
-      radial-gradient(ellipse at 70% 80%, rgba(184,112,91,0.1) 0%, transparent 40%);
+    background: linear-gradient(
+      to bottom,
+      rgba(26, 25, 23, 0.2) 0%,
+      rgba(26, 25, 23, 0.4) 50%,
+      rgba(26, 25, 23, 0.6) 100%
+    );
   }
 
   .hero-content {
     position: relative;
     z-index: 1;
     text-align: center;
-    padding: 2rem;
-    max-width: 720px;
+    padding: var(--space-md);
+    max-width: 800px;
   }
 
   .hero-label {
-    display: inline-block;
-    color: rgba(255,255,255,0.7);
-    font-size: 0.75rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    margin-bottom: 1.5rem;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    display: block;
+    color: rgba(250, 249, 247, 0.6);
+    margin-bottom: var(--space-md);
   }
 
-  .hero h1 {
-    color: #fff;
-    font-size: clamp(2.5rem, 8vw, 4.5rem);
-    margin-bottom: 1rem;
-    letter-spacing: -0.02em;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  .hero-title {
+    color: var(--paper);
+    font-size: clamp(3rem, 10vw, 6rem);
+    line-height: 1;
+    margin-bottom: var(--space-md);
+    letter-spacing: -0.03em;
   }
 
   .hero-subtitle {
-    color: rgba(255,255,255,0.85);
-    font-size: 1.125rem;
-    line-height: 1.6;
-    margin-bottom: 2.5rem;
-    max-width: 520px;
+    color: rgba(250, 249, 247, 0.7);
+    font-size: 1rem;
+    line-height: 1.8;
+    margin-bottom: var(--space-lg);
+    max-width: 480px;
     margin-left: auto;
     margin-right: auto;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.3);
   }
 
-  .hero-search {
-    display: flex;
-    gap: 0.75rem;
-    max-width: 480px;
-    margin: 0 auto 3rem;
+  .hero-btn {
+    border-color: var(--paper);
+    color: var(--paper);
   }
 
-  .search-input-wrap {
-    flex: 1;
-    position: relative;
-  }
-
-  .search-icon {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: rgba(255,255,255,0.4);
-  }
-
-  .hero-search input {
-    width: 100%;
-    padding: 1rem 1rem 1rem 3rem;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 8px;
-    color: #fff;
-    font-size: 1rem;
-  }
-
-  .hero-search input::placeholder {
-    color: rgba(255,255,255,0.4);
-  }
-
-  .hero-search input:focus {
-    outline: none;
-    border-color: rgba(255,255,255,0.4);
-    background: rgba(255,255,255,0.15);
-  }
-
-  .hero-search button {
-    padding: 1rem 2rem;
-    background: #fff;
-    color: var(--accent);
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-  }
-
-  .hero-search button:hover {
-    background: rgba(255,255,255,0.9);
-    transform: translateY(-1px);
+  .hero-btn:hover {
+    background: var(--paper);
+    color: var(--ink);
   }
 
   .hero-stats {
+    position: absolute;
+    bottom: var(--space-xl);
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    justify-content: center;
-    gap: 3rem;
+    gap: var(--space-xl);
+    z-index: 1;
   }
 
   .stat {
@@ -478,820 +362,581 @@ const eventListSchema = {
 
   .stat-number {
     display: block;
-    color: #fff;
     font-family: var(--font-serif);
-    font-size: 2rem;
+    font-size: 2.5rem;
+    color: var(--paper);
+    line-height: 1;
+    margin-bottom: 0.25rem;
   }
 
   .stat-label {
-    color: rgba(255,255,255,0.5);
-    font-size: 0.75rem;
+    font-size: 0.625rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.15em;
+    color: rgba(250, 249, 247, 0.5);
   }
 
-  /* ═══════════════════════════════════════════════════════════════
-     FILTER PILLS
-     ═══════════════════════════════════════════════════════════════ */
-  .filter-section {
-    padding: 2rem 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-warm);
-  }
-
-  .filter-pills {
+  .hero-scroll {
+    position: absolute;
+    bottom: var(--space-md);
+    right: var(--space-md);
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     gap: 0.5rem;
+    z-index: 1;
   }
 
-  .pill {
-    padding: 0.5rem 1.25rem;
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    background: var(--bg-card);
-    transition: all var(--transition-fast);
+  .hero-scroll span {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(250, 249, 247, 0.4);
+    writing-mode: vertical-lr;
   }
 
-  .pill:hover {
-    border-color: var(--accent);
-    color: var(--accent);
+  .scroll-line {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, rgba(250, 249, 247, 0.4), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
   }
 
-  .pill.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 1; transform: scaleY(1); }
+    50% { opacity: 0.5; transform: scaleY(0.8); }
   }
 
-  .pill-rooted { border-color: var(--category-rooted); color: var(--category-rooted); }
-  .pill-hybrid { border-color: var(--category-hybrid); color: var(--category-hybrid); }
+  /* ═══════════════════════════════════════════════════════════════════════════
+     SECTIONS - Common styles
+  ═══════════════════════════════════════════════════════════════════════════ */
+  .section {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out);
+  }
 
-  /* ═══════════════════════════════════════════════════════════════
-     FEATURED CARDS
-     ═══════════════════════════════════════════════════════════════ */
+  .section.revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--stone);
+  }
+
+  .section-header__text .micro-label {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .section-header__text h2 {
+    margin: 0;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     FEATURED - Asymmetric editorial grid
+  ═══════════════════════════════════════════════════════════════════════════ */
+  .section--featured {
+    padding-top: var(--space-2xl);
+  }
+
   .featured-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-    gap: 2rem;
+    grid-template-columns: 1.4fr 1fr;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
   }
 
   .featured-card {
     display: block;
-    background: var(--bg-card);
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    transition: all var(--transition-base);
-  }
-
-  .featured-card:hover {
-    border-color: var(--accent);
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-4px);
-  }
-
-  .featured-image {
     position: relative;
-    height: 200px;
     overflow: hidden;
+    background: var(--stone);
   }
 
-  .featured-image-overlay {
+  .featured-card--large {
+    aspect-ratio: 4/5;
+  }
+
+  .featured-card--medium {
+    aspect-ratio: 3/4;
+  }
+
+  .featured-card__image {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%);
   }
 
-  .card-badge {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
+  .featured-card__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--duration) var(--ease-out);
   }
 
-  .featured-date {
+  .featured-card__placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, var(--charcoal) 0%, var(--ink) 100%);
+  }
+
+  .featured-card__overlay {
     position: absolute;
-    bottom: 1rem;
-    left: 1rem;
+    inset: 0;
+    background: linear-gradient(to top, rgba(26, 25, 23, 0.8) 0%, rgba(26, 25, 23, 0.2) 50%, transparent 100%);
+    transition: background var(--duration) var(--ease-out);
+  }
+
+  .featured-card:hover .featured-card__image img {
+    transform: scale(1.03);
+  }
+
+  .featured-card:hover .featured-card__overlay {
+    background: linear-gradient(to top, rgba(26, 25, 23, 0.9) 0%, rgba(26, 25, 23, 0.4) 60%, rgba(26, 25, 23, 0.2) 100%);
+  }
+
+  .featured-card__content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: var(--space-md);
+    color: var(--paper);
+    z-index: 1;
+  }
+
+  .featured-card__date {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
     text-align: center;
-    color: #fff;
+    color: var(--paper);
   }
 
-  .date-day {
+  .featured-card__date .date-day {
     display: block;
     font-family: var(--font-serif);
     font-size: 2rem;
     line-height: 1;
   }
 
-  .date-month {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0.8;
+  .featured-card__date .date-month {
+    font-size: 0.625rem;
+    letter-spacing: 0.1em;
+    opacity: 0.7;
   }
 
-  .featured-content {
-    padding: 1.5rem;
+  .featured-card__content .micro-label {
+    color: rgba(250, 249, 247, 0.6);
+    margin-bottom: 0.5rem;
+    display: block;
   }
 
-  .featured-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
+  .featured-card__content h3 {
+    color: var(--paper);
+    font-size: 1.75rem;
+    margin-bottom: 0.25rem;
   }
 
-  .featured-card h3 {
-    font-size: 1.35rem;
-    margin-bottom: 0.35rem;
-    color: var(--text);
+  .featured-card--medium .featured-card__content h3 {
+    font-size: 1.5rem;
   }
 
-  .featured-location {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin-bottom: 1rem;
-  }
-
-  .why-go {
-    color: var(--text-muted);
+  .featured-card__location {
     font-size: 0.875rem;
-    line-height: 1.6;
-    margin-bottom: 1rem;
-    font-style: italic;
+    color: rgba(250, 249, 247, 0.6);
   }
 
-  .featured-traditions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+  /* Featured List */
+  .featured-list {
+    display: grid;
+    gap: 0;
+    border-top: 1px solid var(--stone);
   }
 
-  .tradition-pill {
-    padding: 0.25rem 0.75rem;
-    border-radius: 100px;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-
-  .tradition-pill[data-category="rooted"] {
-    background: var(--category-rooted-bg);
-    color: var(--category-rooted);
-  }
-
-  .tradition-pill[data-category="hybrid"] {
-    background: var(--category-hybrid-bg);
-    color: var(--category-hybrid);
-  }
-
-  .tradition-pill[data-category="imported"] {
-    background: var(--category-imported-bg);
-    color: var(--category-imported);
-  }
-
-  .best-for-row {
-    display: flex;
-    flex-wrap: wrap;
+  .featured-list__item {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: var(--space-md);
+    padding: var(--space-md) 0;
+    border-bottom: 1px solid var(--stone);
     align-items: center;
-    gap: 0.5rem;
+    transition: background var(--duration) var(--ease-out);
   }
 
-  .best-for-label {
-    font-size: 0.7rem;
-    color: var(--text-light);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+  .featured-list__item:hover {
+    background: var(--paper-warm);
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
+    margin: 0 calc(-1 * var(--space-sm));
   }
 
-  .best-for {
-    padding: 0.2rem 0.5rem;
-    background: var(--bg-warm);
-    border-radius: 4px;
-    font-size: 0.7rem;
-    color: var(--text-muted);
+  .featured-list__date {
+    text-align: center;
   }
 
-  /* ═══════════════════════════════════════════════════════════════
-     HORIZONTAL TIMELINE (Below Hero)
-     ═══════════════════════════════════════════════════════════════ */
-  .timeline-section {
-    background: var(--bg-warm);
-    padding: 1.25rem 0;
-    border-bottom: 1px solid var(--border);
+  .featured-list__date .date-day {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--ink);
   }
 
-  .timeline-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 1280px;
-    margin: 0 auto 1rem;
-    padding: 0 1.5rem;
+  .featured-list__date .date-month {
+    font-size: 0.625rem;
+    letter-spacing: 0.1em;
+    color: var(--warm-gray);
   }
 
-  .timeline-label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
+  .featured-list__content .micro-label {
+    display: block;
+    margin-bottom: 0.25rem;
   }
 
-  .timeline-view-all {
-    font-size: 0.8rem;
-    color: var(--accent);
+  .featured-list__content h4 {
+    font-size: 1.125rem;
+    margin-bottom: 0.125rem;
+    color: var(--ink);
   }
 
-  .timeline-view-all:hover {
-    text-decoration: underline;
+  .featured-list__content p {
+    font-size: 0.8125rem;
+    color: var(--warm-gray);
   }
 
-  .timeline-wrapper {
+  .featured-list__arrow {
+    font-size: 1.25rem;
+    color: var(--sand);
+    transition: transform var(--duration) var(--ease-out), color var(--duration) var(--ease-out);
+  }
+
+  .featured-list__item:hover .featured-list__arrow {
+    transform: translateX(4px);
+    color: var(--ink);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     TRADITIONS - Horizontal scroll gallery
+  ═══════════════════════════════════════════════════════════════════════════ */
+  .section--traditions {
+    background: var(--paper-warm);
+    padding: var(--space-xl) 0;
+    margin: 0 calc(-50vw + 50%);
+    padding-left: calc(50vw - 50%);
+    padding-right: calc(50vw - 50%);
+  }
+
+  .traditions-scroll-wrapper {
     position: relative;
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 1.5rem;
   }
 
-  .timeline-scroll {
+  .traditions-scroll {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-md);
     overflow-x: auto;
-    padding-bottom: 0.5rem;
-    padding-right: 3rem;
+    scroll-snap-type: x mandatory;
     scrollbar-width: none;
-    -ms-overflow-style: none;
+    padding-bottom: var(--space-sm);
   }
 
-  .timeline-scroll::-webkit-scrollbar {
+  .traditions-scroll::-webkit-scrollbar {
     display: none;
   }
 
-  .timeline-card {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 0.875rem;
-    padding: 0.75rem 1rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    min-width: 200px;
-    transition: border-color 0.2s, transform 0.2s;
+  .tradition-card {
+    flex: 0 0 320px;
+    scroll-snap-align: start;
+    padding: var(--space-md);
+    background: var(--paper);
+    border: 1px solid var(--stone);
+    transition: all var(--duration) var(--ease-out);
   }
 
-  .timeline-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-1px);
+  .tradition-card:hover {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
   }
 
-  .tc-date {
-    text-align: center;
-    min-width: 38px;
-    padding-right: 0.875rem;
-    border-right: 1px solid var(--border);
-  }
-
-  .tc-day {
-    display: block;
+  .tradition-card__number {
     font-family: var(--font-serif);
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: var(--accent);
-    line-height: 1;
+    font-size: 0.875rem;
+    color: var(--sand);
+    margin-bottom: var(--space-md);
+    transition: color var(--duration) var(--ease-out);
   }
 
-  .tc-month {
+  .tradition-card:hover .tradition-card__number {
+    color: rgba(250, 249, 247, 0.4);
+  }
+
+  .tradition-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+    transition: color var(--duration) var(--ease-out);
+  }
+
+  .tradition-card:hover h3 {
+    color: var(--paper);
+  }
+
+  .tradition-card__ar {
     display: block;
-    font-size: 0.65rem;
+    font-size: 1rem;
+    color: var(--warm-gray);
+    margin-bottom: var(--space-sm);
+    transition: color var(--duration) var(--ease-out);
+  }
+
+  .tradition-card:hover .tradition-card__ar {
+    color: rgba(250, 249, 247, 0.5);
+  }
+
+  .tradition-card p {
+    font-size: 0.875rem;
+    color: var(--charcoal-soft);
+    margin-bottom: var(--space-sm);
+    line-height: 1.6;
+    transition: color var(--duration) var(--ease-out);
+  }
+
+  .tradition-card:hover p {
+    color: rgba(250, 249, 247, 0.7);
+  }
+
+  .tradition-card__count {
+    font-size: 0.6875rem;
     text-transform: uppercase;
-    color: var(--text-muted);
-    letter-spacing: 0.02em;
-    margin-top: 0.2rem;
+    letter-spacing: 0.12em;
+    color: var(--terracotta);
+    transition: color var(--duration) var(--ease-out);
   }
 
-  .tc-content h4 {
-    font-family: var(--font-sans);
-    font-size: 0.85rem;
-    font-weight: 500;
-    margin-bottom: 0.15rem;
-    color: var(--text);
-    line-height: 1.3;
+  .tradition-card:hover .tradition-card__count {
+    color: rgba(250, 249, 247, 0.6);
   }
 
-  .tc-location {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-  }
-
-  .timeline-arrow {
+  .scroll-arrow {
     position: absolute;
-    right: 1rem;
     top: 50%;
+    right: 0;
     transform: translateY(-50%);
-    width: 36px;
-    height: 36px;
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    background: var(--bg-card);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--text-muted);
-    transition: all 0.2s;
-    box-shadow: -4px 0 12px rgba(0,0,0,0.06);
-    z-index: 2;
-  }
-
-  .timeline-arrow:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--bg);
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     TWO COLUMN
-     ═══════════════════════════════════════════════════════════════ */
-  .two-col {
-    display: grid;
-    grid-template-columns: 1.2fr 0.8fr;
-    gap: 4rem;
-  }
-
-  .tradition-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
-
-  .tradition-card-mini {
-    display: flex;
-    gap: 1rem;
-    padding: 1rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    transition: all var(--transition-base);
-  }
-
-  .tradition-card-mini:hover {
-    border-color: var(--accent);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .tradition-card-mini[data-sacred="true"] {
-    border-left: 3px solid var(--sacred);
-  }
-
-  .tcm-icon {
     width: 48px;
     height: 48px;
-    border-radius: 8px;
-    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
-    font-size: 0.8rem;
+    background: var(--paper);
+    border: 1px solid var(--stone);
+    cursor: pointer;
+    transition: all var(--duration) var(--ease-out);
   }
 
-  .tcm-content h4 {
-    font-family: var(--font-sans);
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 0.15rem;
+  .scroll-arrow:hover {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
   }
 
-  .tcm-ar {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-  }
-
-  .tcm-desc {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-top: 0.35rem;
-    line-height: 1.4;
-  }
-
-  .tcm-count {
-    font-size: 0.7rem;
-    color: var(--accent);
-    margin-top: 0.35rem;
-    display: block;
-  }
-
-  .hybrid-tags {
-    margin-top: 1.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .hybrid-label {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-
-  .tag-pill {
-    padding: 0.35rem 0.75rem;
-    border-radius: 100px;
-    font-size: 0.8rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    transition: all var(--transition-fast);
-  }
-
-  .tag-pill:hover {
-    border-color: var(--accent);
-  }
-
-  .tag-pill.hybrid {
-    border-color: var(--category-hybrid);
-    color: var(--category-hybrid);
-  }
-
-  .city-grid {
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CITIES - Minimal grid with hover inversion
+  ═══════════════════════════════════════════════════════════════════════════ */
+  .cities-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--stone);
+    border: 1px solid var(--stone);
   }
 
   .city-card {
-    position: relative;
-    height: 80px;
-    border-radius: 12px;
-    overflow: hidden;
-    animation: fadeIn 400ms ease-out backwards;
-    animation-delay: var(--delay);
+    padding: var(--space-lg) var(--space-md);
+    background: var(--paper);
+    text-align: center;
+    transition: all var(--duration) var(--ease-out);
   }
 
-  .city-card-bg {
-    position: absolute;
-    inset: 0;
-    transition: transform 400ms ease;
+  .city-card:hover {
+    background: var(--ink);
   }
 
-  .city-card:hover .city-card-bg {
-    transform: scale(1.1);
+  .city-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+    transition: color var(--duration) var(--ease-out);
   }
 
-  .city-card-content {
-    position: relative;
-    z-index: 1;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 1rem;
-    background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%);
+  .city-card:hover h3 {
+    color: var(--paper);
   }
 
-  .city-card h4 {
-    color: #fff;
-    font-family: var(--font-sans);
-    font-size: 0.95rem;
-    font-weight: 500;
+  .city-card__count {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--warm-gray);
+    transition: color var(--duration) var(--ease-out);
   }
 
-  .city-count {
-    color: rgba(255,255,255,0.7);
-    font-size: 0.7rem;
+  .city-card:hover .city-card__count {
+    color: rgba(250, 249, 247, 0.5);
   }
 
-  /* ═══════════════════════════════════════════════════════════════
+  /* ═══════════════════════════════════════════════════════════════════════════
      MAP CTA
-     ═══════════════════════════════════════════════════════════════ */
+  ═══════════════════════════════════════════════════════════════════════════ */
   .map-cta {
-    background: var(--bg-warm);
-    border-radius: 24px;
-    overflow: hidden;
-  }
-
-  .map-cta-inner {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    min-height: 280px;
+    min-height: 400px;
+    border: 1px solid var(--stone);
   }
 
-  .map-cta-content {
-    padding: 3rem;
+  .map-cta__content {
+    padding: var(--space-xl);
     display: flex;
     flex-direction: column;
     justify-content: center;
   }
 
-  .map-cta-content h2 {
-    font-size: 1.75rem;
-    margin-bottom: 0.75rem;
+  .map-cta__content .micro-label {
+    margin-bottom: 0.5rem;
   }
 
-  .map-cta-content p {
-    color: var(--text-muted);
-    margin-bottom: 1.5rem;
-    max-width: 320px;
+  .map-cta__content h2 {
+    margin-bottom: var(--space-sm);
   }
 
-  .map-cta-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.875rem 1.5rem;
-    background: var(--accent);
-    color: #fff;
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all var(--transition-fast);
-    width: fit-content;
+  .map-cta__content p {
+    margin-bottom: var(--space-md);
+    color: var(--charcoal-soft);
   }
 
-  .map-cta-btn:hover {
-    background: var(--accent-hover);
-    transform: translateY(-2px);
-  }
-
-  .map-cta-visual {
+  .map-cta__visual {
     position: relative;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+    background: var(--ink);
+    overflow: hidden;
   }
 
-  .map-dots {
+  .map-pattern {
     position: absolute;
     inset: 0;
   }
 
-  .map-dot {
+  .dot {
     position: absolute;
-    width: 12px;
-    height: 12px;
-    background: rgba(255,255,255,0.3);
+    width: 8px;
+    height: 8px;
+    background: rgba(250, 249, 247, 0.15);
     border-radius: 50%;
-    animation: pulse 2s ease-in-out infinite;
+    animation: dotPulse 3s ease-in-out infinite;
   }
 
-  .map-dot.large {
-    width: 20px;
-    height: 20px;
-    background: #fff;
+  .dot--large {
+    width: 16px;
+    height: 16px;
+    background: var(--terracotta);
     animation-delay: 0.5s;
   }
 
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 0.5; }
-    50% { transform: scale(1.2); opacity: 1; }
+  @keyframes dotPulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
   }
 
-  /* ═══════════════════════════════════════════════════════════════
+  /* ═══════════════════════════════════════════════════════════════════════════
      RESPONSIVE
-     ═══════════════════════════════════════════════════════════════ */
-  @media (max-width: 900px) {
-    .two-col {
-      grid-template-columns: 1fr;
-      gap: 3rem;
-    }
-
-    .map-cta-inner {
-      grid-template-columns: 1fr;
-    }
-
-    .map-cta-visual {
-      height: 200px;
-    }
-
-    .tradition-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .section {
-      padding: 2.5rem 0;
-    }
-
-    .hero { 
-      min-height: 100vh; 
-      min-height: 100dvh;
-    }
-
-    .hero-content {
-      padding: 1rem;
-    }
-
-    .hero h1 {
-      font-size: 2.25rem;
-      line-height: 1.15;
-    }
-
-    .hero-subtitle {
-      font-size: 1rem;
-      margin-bottom: 2rem;
-    }
-
-    .hero-label {
-      font-size: 0.7rem;
-      margin-bottom: 1rem;
-    }
-
-    .hero-stats { 
-      gap: 1rem;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .stat {
-      min-width: 80px;
-    }
-
-    .stat-number { 
-      font-size: 1.25rem; 
-    }
-
-    .stat-label {
-      font-size: 0.6rem;
-    }
-    
-    .hero-search {
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .hero-search input {
-      font-size: 0.95rem;
-    }
-
-    .hero-search button {
-      width: 100%;
-      justify-content: center;
-    }
-
-    /* Filter pills - horizontal scroll */
-    .filter-pills {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      padding-bottom: 0.5rem;
-      margin: 0 -1rem;
-      padding-left: 1rem;
-      padding-right: 1rem;
-    }
-
-    .filter-pills::-webkit-scrollbar {
-      display: none;
-    }
-
-    .filter-pills .pill {
-      flex-shrink: 0;
-      font-size: 0.8rem;
-      padding: 0.5rem 1rem;
-    }
-
-    /* Section headers */
-    .section-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 1rem;
-    }
-
-    .section-header h2 {
-      font-size: 1.5rem;
-    }
-
-    .section-header .subtitle {
-      font-size: 0.9rem;
-    }
-
-    /* Featured grid */
+  ═══════════════════════════════════════════════════════════════════════════ */
+  @media (max-width: 1024px) {
     .featured-grid {
-      grid-template-columns: 1fr;
-      gap: 1.5rem;
+      grid-template-columns: 1fr 1fr;
     }
 
-    .event-card {
-      padding: 1rem;
+    .cities-grid {
+      grid-template-columns: repeat(2, 1fr);
     }
 
-    .event-card h3 {
-      font-size: 1.1rem;
-    }
-
-    /* Timeline */
-    .timeline-section {
-      padding: 1rem 0;
-    }
-
-    .timeline-header {
-      padding: 0 1rem;
-      margin-bottom: 0.75rem;
-    }
-
-    .timeline-wrapper {
-      padding: 0 1rem;
-    }
-
-    .timeline-scroll {
-      padding-right: 2.5rem;
-    }
-
-    .timeline-card {
-      min-width: 180px;
-      padding: 0.625rem 0.875rem;
-      gap: 0.75rem;
-    }
-
-    .tc-day {
-      font-size: 1.1rem;
-    }
-
-    .tc-content h4 {
-      font-size: 0.8rem;
-    }
-
-    .timeline-arrow {
-      width: 32px;
-      height: 32px;
-      right: 0.5rem;
-    }
-
-    /* Cities grid */
-    .city-grid {
-      grid-template-columns: 1fr;
-      gap: 1rem;
-    }
-
-    .city-card {
-      height: 140px;
-    }
-
-    /* Traditions */
-    .traditions-home h2,
-    .cities-home h2 {
-      font-size: 1.25rem;
-    }
-
-    .tradition-mini {
-      padding: 1rem;
-    }
-
-    .tradition-mini h4 {
-      font-size: 0.95rem;
-    }
-
-    /* Map CTA */
     .map-cta {
-      padding: 2rem 0;
+      grid-template-columns: 1fr;
     }
 
-    .map-cta-content h2 {
-      font-size: 1.5rem;
-    }
-
-    .map-cta-content p {
-      font-size: 0.95rem;
-    }
-
-    /* Vibe badges */
-    .vibe-badges {
-      gap: 0.4rem;
-    }
-
-    .vibe-badge {
-      font-size: 0.65rem;
-      padding: 0.25rem 0.5rem;
-    }
-
-    /* Best for tags */
-    .best-for {
-      flex-wrap: wrap;
-      gap: 0.4rem;
-    }
-
-    .best-for span {
-      font-size: 0.7rem;
+    .map-cta__visual {
+      min-height: 200px;
     }
   }
 
-  /* Very small screens */
-  @media (max-width: 380px) {
-    .hero h1 {
-      font-size: 1.85rem;
-    }
-
+  @media (max-width: 768px) {
     .hero-stats {
-      gap: 0.75rem;
+      bottom: var(--space-lg);
+      gap: var(--space-lg);
     }
 
     .stat-number {
-      font-size: 1.1rem;
+      font-size: 2rem;
+    }
+
+    .hero-scroll {
+      display: none;
+    }
+
+    .section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-sm);
+    }
+
+    .featured-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .featured-card--large,
+    .featured-card--medium {
+      aspect-ratio: 4/5;
+    }
+
+    .featured-list__item {
+      grid-template-columns: 60px 1fr auto;
+    }
+
+    .tradition-card {
+      flex: 0 0 280px;
+    }
+
+    .cities-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .city-card {
+      padding: var(--space-md);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-title {
+      font-size: 2.5rem;
+    }
+
+    .hero-stats {
+      gap: var(--space-md);
+    }
+
+    .stat-number {
+      font-size: 1.5rem;
+    }
+
+    .featured-card__content h3 {
+      font-size: 1.25rem;
+    }
+
+    .featured-list__date .date-day {
+      font-size: 1.25rem;
     }
   }
 </style>
