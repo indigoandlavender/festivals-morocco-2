@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { getSiteSettings, getSheetEvents, type SheetEvent } from '../lib/sheets';
+import { getSiteSettings, getSheetEvents, type SheetEvent } from '../lib/supabase';
 import { getCities, getTraditions, TraditionCategory } from '../lib/api';
 
 const settings = await getSiteSettings();
