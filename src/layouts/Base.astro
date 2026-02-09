@@ -13,6 +13,13 @@ const currentPath = Astro.url.pathname;
 
 const settings = passedSettings || await getSiteSettings();
 
+// Normalize canonical path — strip trailing slash except for root
+let canonicalPath = currentPath;
+if (canonicalPath !== '/' && canonicalPath.endsWith('/')) {
+  canonicalPath = canonicalPath.slice(0, -1);
+}
+const canonicalUrl = `https://festivalsinmorocco.com${canonicalPath}`;
+
 let legalPages = [];
 try {
   legalPages = await getLegalPages();
@@ -37,12 +44,12 @@ try {
   <meta name="author" content="Slow Morocco">
   <meta name="robots" content="index, follow">
   
-  <link rel="canonical" href={`https://festivalsinmorocco.com${currentPath}`}>
+  <link rel="canonical" href={canonicalUrl}>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   
   <meta property="og:type" content="website">
-  <meta property="og:url" content={`https://festivalsinmorocco.com${currentPath}`}>
+  <meta property="og:url" content={canonicalUrl}>
   <meta property="og:title" content={title}>
   <meta property="og:description" content={description}>
   <meta property="og:image" content={image || "https://festivalsinmorocco.com/og-image.jpg"}>
@@ -570,16 +577,22 @@ try {
       text-align: center;
     }
 
-    .footer-powered a {
+    .footer-powered span {
       font-size: 0.5625rem;
       text-transform: uppercase;
       letter-spacing: 0.15em;
       color: rgba(250, 249, 247, 0.15);
+    }
+
+    .footer-powered a {
+      color: rgba(250, 249, 247, 0.25);
+      text-decoration: underline;
+      text-underline-offset: 2px;
       transition: color var(--duration) var(--ease-out);
     }
 
     .footer-powered a:hover {
-      color: rgba(250, 249, 247, 0.4);
+      color: rgba(250, 249, 247, 0.45);
     }
 
     /* ═══════════════════════════════════════════════════════════════════════════
@@ -721,7 +734,7 @@ try {
     </div>
     <div class="footer-powered">
       <div class="container">
-        <a href="https://www.slowmorocco.com/" target="_blank" rel="noopener">Powered by Slow Morocco</a>
+        <span>A <a href="https://www.slowmorocco.com/" target="_blank" rel="noopener">Slow Morocco</a> project</span>
       </div>
     </div>
   </footer>

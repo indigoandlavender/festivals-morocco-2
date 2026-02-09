@@ -3,22 +3,18 @@
 
 User-agent: *
 Allow: /
-
-# AI/LLM Information (GEO - Generative Engine Optimization)
-# For AI crawlers seeking content context
-# llms.txt: https://festivalsinmorocco.com/llms.txt
-# llms-full.txt: https://festivalsinmorocco.com/llms-full.txt
-
-# Crawl-delay for politeness
-Crawl-delay: 1
-
-# Block common bot paths
 Disallow: /api/
 Disallow: /_astro/
+Crawl-delay: 1
 
-# Allow AI crawlers full access
+Sitemap: https://festivalsinmorocco.com/sitemap.xml
+
+# AI Crawlers — full access including knowledge endpoints
 User-agent: GPTBot
 Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /openapi.json
 
 User-agent: ChatGPT-User
 Allow: /
@@ -41,7 +37,16 @@ Allow: /
 User-agent: CCBot
 Allow: /
 
-# Allow social media crawlers
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+# Social media crawlers
 User-agent: Twitterbot
 Allow: /
 
@@ -49,7 +54,4 @@ User-agent: facebookexternalhit
 Allow: /
 
 User-agent: LinkedInBot
-Allow: /
-
-User-agent: Pinterest
 Allow: /

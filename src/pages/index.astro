@@ -29,28 +29,83 @@ function formatDate(dateStr: string): { day: string; month: string; year: string
 const eventListSchema = {
   "@context": "https://schema.org",
   "@type": "ItemList",
-  "name": "Upcoming Events in Morocco",
-  "numberOfItems": Math.min(featured.length, 10),
-  "itemListElement": featured.slice(0, 10).map((event, index) => ({
+  "name": "Festivals and Cultural Events in Morocco",
+  "description": "Complete guide to festivals, cultural events, and celebrations across Morocco",
+  "numberOfItems": sheetEvents.length,
+  "itemListElement": sheetEvents.slice(0, 20).map((event, index) => ({
     "@type": "ListItem",
     "position": index + 1,
     "item": {
-      "@type": "Event",
+      "@type": "Festival",
       "name": event.title_en,
       "startDate": event.startDate,
+      "endDate": event.endDate || event.startDate,
       "url": `https://festivalsinmorocco.com/events/${event.slug}`,
       "location": {
         "@type": "Place",
-        "name": event.city,
-        "address": { "@type": "PostalAddress", "addressLocality": event.city, "addressCountry": "Morocco" }
+        "name": event.venue || event.city,
+        "address": { "@type": "PostalAddress", "addressLocality": event.city, "addressCountry": "MA" }
       }
     }
   }))
+};
+
+// Unique cities for FAQ
+const uniqueCities = [...new Set(sheetEvents.map(e => e.city))].filter(Boolean);
+const freeEvents = sheetEvents.filter(e => e.price_isFree);
+const categories = [...new Set(sheetEvents.map(e => e.category))].filter(Boolean);
+
+const homepageFaqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What festivals are held in Morocco?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `Morocco hosts ${sheetEvents.length} annual festivals and cultural events across ${uniqueCities.length} cities, spanning categories including ${categories.join(', ')}. Major festivals include the Gnaoua World Music Festival in Essaouira, Mawazine in Rabat, the Fes Festival of World Sacred Music, Jazzablanca in Casablanca, and the Marrakech International Film Festival.`
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When is the best time to visit Morocco for festivals?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Morocco has festivals year-round, but the peak festival season is June through October. Summer brings major music festivals (Gnaoua, Mawazine, Timitar, Jazzablanca), while autumn features MOGA Festival, Visa For Music, and the Marrakech Film Festival. Spring offers the Rose Festival and Fes Sacred Music, and winter includes Yennayer (Amazigh New Year) and the Almond Blossom Festival."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are there free festivals in Morocco?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `Yes, ${freeEvents.length} of Morocco's ${sheetEvents.length} listed festivals are free to attend. Many heritage celebrations, spiritual moussems, and traditional festivals have free admission, including Yennayer, the Rose Festival, the Cherry Festival, and Mawazine.`
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is a moussem in Morocco?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A moussem is a traditional Moroccan pilgrimage festival combining religious devotion with cultural celebration. Moussems typically honour a local saint (marabout) and feature music, dance, fantasia horse riding, trade, and communal gatherings. Notable moussems include Moussem Tan Tan (UNESCO-recognized), Moussem of Moulay Idriss, and the Imilchil Marriage Festival."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is Gnaoua music?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Gnaoua (also spelled Gnawa) is a traditional Moroccan spiritual music tradition with sub-Saharan African roots. It features hypnotic bass rhythms from the guembri (three-stringed lute), iron castanets (qraqeb), and call-and-response chanting. The Gnaoua World Music Festival in Essaouira, held annually in June, is the largest celebration of this tradition."
+      }
+    }
+  ]
 };
 ---
 
 <Base title="Festivals in Morocco — Cultural Events & Celebrations" settings={settings}>
   <script type="application/ld+json" set:html={JSON.stringify(eventListSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(homepageFaqSchema)} />
   
   <!-- ═══════════════════════════════════════════════════════════════════════════
        HERO - Full screen, typographic, gallery aesthetic
