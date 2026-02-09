@@ -78,6 +78,37 @@ const breadcrumbSchema = {
     { "@type": "ListItem", "position": 3, "name": event.title_en }
   ]
 };
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": `When is ${event.title_en}?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": startDate ? `${event.title_en} takes place ${formatDateRange(startDate, endDate || undefined)} in ${event.city}, Morocco.` : `Dates for ${event.title_en} are announced annually.`
+      }
+    },
+    {
+      "@type": "Question",
+      "name": `Where is ${event.title_en} held?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `${event.title_en} is held in ${event.city}${event.venue ? ` at ${event.venue}` : ''}, in the ${event.region} region of Morocco.`
+      }
+    },
+    ...(event.price_isFree ? [{
+      "@type": "Question",
+      "name": `Is ${event.title_en} free?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `Yes, ${event.title_en} is free to attend.`
+      }
+    }] : [])
+  ]
+};
 ---
 
 <Base
