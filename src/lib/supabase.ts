@@ -1,23 +1,34 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { google } from "googleapis";
 
 // =============================================================================
-// SUPABASE CLIENT
+// SUPABASE CLIENT (lazy-initialized)
 // =============================================================================
 
-const supabaseUrl =
-  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
-  import.meta.env.PUBLIC_SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  "";
+let _supabase: SupabaseClient | null = null;
 
-const supabaseKey =
-  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  import.meta.env.PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  "";
+function getSupabase(): SupabaseClient {
+  if (!_supabase) {
+    const url =
+      import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
+      import.meta.env.PUBLIC_SUPABASE_URL ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      "";
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+    const key =
+      import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      "";
+
+    if (!url || !key) {
+      throw new Error("Supabase URL and anon key are required. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+    }
+
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
+}
 
 // =============================================================================
 // BUILD-TIME CACHE
@@ -242,7 +253,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("site_settings")
       .select("key, value");
 
@@ -331,7 +342,7 @@ export async function getSheetEvents(): Promise<SheetEvent[]> {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("festivals")
       .select("*")
       .eq("status", "published")

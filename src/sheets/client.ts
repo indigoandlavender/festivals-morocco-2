@@ -5,12 +5,18 @@
  * Used by Vercel serverless API routes (/api/*).
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+let _supabase: SupabaseClient | null = null;
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+function getSupabase(): SupabaseClient {
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
+}
 
 // ============================================================================
 // TYPES
@@ -163,7 +169,7 @@ export async function fetchEvents(): Promise<SheetEvent[]> {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("festivals")
       .select("*")
       .eq("status", "published")
