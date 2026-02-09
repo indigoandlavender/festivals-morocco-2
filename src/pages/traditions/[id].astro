@@ -19,12 +19,37 @@ events.sort((a, b) => {
 });
 
 const categoryLabel = TraditionCategoryLabels[tradition.category] || tradition.category;
+
+const traditionSchema = {
+  "@context": "https://schema.org",
+  "@type": "DefinedTerm",
+  "name": tradition.name,
+  ...(fullTradition?.name_ar ? { "alternateName": fullTradition.name_ar } : {}),
+  "description": fullTradition?.description || `${tradition.name} is a cultural tradition in Morocco associated with ${events.length} festivals and events.`,
+  "inDefinedTermSet": {
+    "@type": "DefinedTermSet",
+    "name": "Moroccan Cultural Traditions",
+    "url": "https://festivalsinmorocco.com/traditions"
+  }
+};
+
+const traditionBreadcrumb = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://festivalsinmorocco.com" },
+    { "@type": "ListItem", "position": 2, "name": "Traditions", "item": "https://festivalsinmorocco.com/traditions" },
+    { "@type": "ListItem", "position": 3, "name": tradition.name }
+  ]
+};
 ---
 
 <Base
   title={`${tradition.name} — Festivals in Morocco`}
   description={fullTradition?.description || `Events featuring ${tradition.name} in Morocco`}
 >
+  <script type="application/ld+json" set:html={JSON.stringify(traditionSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(traditionBreadcrumb)} />
   <div class="page-header">
     <nav class="breadcrumb">
       <a href="/">Home</a>
