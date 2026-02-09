@@ -210,6 +210,30 @@ const breadcrumbSchema = {
             <span>→</span>
           </a>
         </div>
+
+        {event.id === 'imilchil-2026' && (
+          <div class="info-card info-card--journey">
+            <span class="journey-label">Journey</span>
+            <h3>Imilchil Marriage Festival</h3>
+            <p class="journey-desc">Five days to the High Atlas moussem where a yes is a marriage. The legend of Isli and Tislit — Romeo and Juliet of the Atlas.</p>
+            <a href="https://www.slowmorocco.com/journeys/imilchil-marriage-festival-5-days" target="_blank" rel="noopener" class="journey-link">
+              View journey
+              <span>→</span>
+            </a>
+          </div>
+        )}
+
+        {event.id === 'salon-cheval-2026' && (
+          <div class="info-card info-card--journey">
+            <span class="journey-label">Journey</span>
+            <h3>El Jadida &amp; Tbourida</h3>
+            <p class="journey-desc">Five days on the Atlantic coast. Tbourida cavalry charges, Portuguese cisterns, and the oyster farms of Oualidia.</p>
+            <a href="https://www.slowmorocco.com/journeys/el-jadida-tbourida-5-days" target="_blank" rel="noopener" class="journey-link">
+              View journey
+              <span>→</span>
+            </a>
+          </div>
+        )}
       </aside>
     </div>
 
@@ -505,6 +529,55 @@ const breadcrumbSchema = {
   .cta-link span {
     opacity: 0.5;
     transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  /* Imilchil journey card */
+  .info-card--journey {
+    background: #2a2318;
+    border-color: #3a3128;
+  }
+
+  .journey-label {
+    font-size: 0.5625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #a08060;
+  }
+
+  .info-card--journey h3 {
+    color: var(--paper);
+    border-bottom: none;
+    margin-top: 0.25rem;
+  }
+
+  .journey-desc {
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: rgba(250, 249, 247, 0.5);
+    margin: 0.5rem 0 1rem;
+  }
+
+  .journey-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: rgba(160, 128, 96, 0.12);
+    border: 1px solid rgba(160, 128, 96, 0.2);
+    border-radius: 4px;
+    color: #c4a882;
+    font-size: 0.8125rem;
+    letter-spacing: 0.02em;
+    transition: all var(--duration-fast) var(--ease-out);
+  }
+
+  .journey-link:hover {
+    background: rgba(160, 128, 96, 0.2);
+    border-color: rgba(160, 128, 96, 0.35);
+  }
+
+  .journey-link span {
+    opacity: 0.6;
   }
 
   .cta-link:hover span {
