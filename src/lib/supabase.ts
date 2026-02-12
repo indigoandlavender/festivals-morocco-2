@@ -172,8 +172,117 @@ export async function getLegalPageContent(
     };
   } catch (error) {
     console.error(`Error fetching legal page ${pageId}:`, error);
-    return null;
+    return getFallbackLegalPageContent(pageId);
   }
+}
+
+function getFallbackLegalPageContent(pageId: string): LegalPageContent | null {
+  const siteName = "Festivals in Morocco";
+  const siteUrl = "https://festivalsinmorocco.com";
+  const legalEntity = "Dancing with Lions";
+  const contactEmail = "hello@festivalsinmorocco.com";
+  const address = "35 Derb Fhal Zfriti Kennaria, Marrakech 40000 Morocco";
+
+  const pages: Record<string, LegalPageContent> = {
+    privacy: {
+      page_id: "privacy",
+      page_title: "Privacy Policy",
+      sections: [
+        {
+          section_title: "Introduction",
+          section_content: `${siteName} (${siteUrl}), operated by ${legalEntity}, is committed to protecting your privacy. This policy explains how we collect, use, and safeguard your information when you visit our website.`,
+        },
+        {
+          section_title: "Information We Collect",
+          section_content: `We may collect non-personal information such as browser type, language preference, referring site, and the date and time of each visitor request. We collect personal information only when you voluntarily provide it, such as when subscribing to our newsletter or submitting a festival listing.`,
+        },
+        {
+          section_title: "How We Use Your Information",
+          section_content: `We use the information we collect to operate and improve the website, send periodic emails if you have opted in, and respond to inquiries. We do not sell, trade, or otherwise transfer your personal information to third parties.`,
+        },
+        {
+          section_title: "Cookies",
+          section_content: `Our website may use cookies to enhance your experience. You can choose to disable cookies through your browser settings, though this may affect some functionality.`,
+        },
+        {
+          section_title: "Contact Us",
+          section_content: `If you have questions about this Privacy Policy, please contact us at ${contactEmail} or write to us at ${address}.`,
+        },
+      ],
+    },
+    terms: {
+      page_id: "terms",
+      page_title: "Terms of Service",
+      sections: [
+        {
+          section_title: "Acceptance of Terms",
+          section_content: `By accessing and using ${siteName} (${siteUrl}), you accept and agree to be bound by these Terms of Service. If you do not agree, please do not use this website.`,
+        },
+        {
+          section_title: "Use of Content",
+          section_content: `All content on this website is provided for informational purposes only. Festival dates, times, locations, and details are subject to change without notice. We recommend verifying event details with official organizers before making travel plans.`,
+        },
+        {
+          section_title: "User Submissions",
+          section_content: `By submitting content to ${siteName}, you grant us a non-exclusive, royalty-free license to use, reproduce, and display the submitted content in connection with the website.`,
+        },
+        {
+          section_title: "Limitation of Liability",
+          section_content: `${legalEntity} shall not be liable for any direct, indirect, incidental, or consequential damages arising from your use of this website or reliance on any information provided.`,
+        },
+        {
+          section_title: "Contact Us",
+          section_content: `For questions about these Terms of Service, contact us at ${contactEmail}.`,
+        },
+      ],
+    },
+    disclaimer: {
+      page_id: "disclaimer",
+      page_title: "Disclaimer",
+      sections: [
+        {
+          section_title: "General Disclaimer",
+          section_content: `The information provided on ${siteName} (${siteUrl}) is for general informational purposes only. While we strive to keep the information up to date and accurate, we make no representations or warranties of any kind about the completeness, accuracy, reliability, or availability of the website or the information contained on it.`,
+        },
+        {
+          section_title: "Event Information",
+          section_content: `Festival and event listings are compiled from publicly available sources and direct submissions. Dates, venues, pricing, and other details may change without notice. Always verify event details with official organizers before making plans or purchasing tickets.`,
+        },
+        {
+          section_title: "External Links",
+          section_content: `This website may contain links to external sites that are not operated by us. We have no control over the content and practices of these sites and cannot accept responsibility for their privacy policies or content.`,
+        },
+        {
+          section_title: "Contact Us",
+          section_content: `If you have any concerns, please contact us at ${contactEmail} or write to ${address}.`,
+        },
+      ],
+    },
+    "intellectual-property": {
+      page_id: "intellectual-property",
+      page_title: "Intellectual Property",
+      sections: [
+        {
+          section_title: "Ownership",
+          section_content: `All original content on ${siteName} (${siteUrl}), including text, design, graphics, logos, and compilation of content, is the property of ${legalEntity} and is protected by international copyright laws.`,
+        },
+        {
+          section_title: "Permitted Use",
+          section_content: `You may view, download, and print pages from this website for your personal, non-commercial use, provided you do not modify the content and you retain all copyright and proprietary notices.`,
+        },
+        {
+          section_title: "Third-Party Content",
+          section_content: `Some images, festival descriptions, and other content may be owned by third parties and are used with permission or under applicable fair use provisions. Such content remains the property of its respective owners.`,
+        },
+        {
+          section_title: "Contact Us",
+          section_content: `For intellectual property inquiries, please contact us at ${contactEmail}.`,
+        },
+      ],
+    },
+  };
+
+  return pages[pageId] || null;
 }
 
 // =============================================================================
