@@ -1,8 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { google } from "googleapis";
 
 // =============================================================================
-// SUPABASE CLIENT (lazy-initialized)
+// SUPABASE CLIENT — Site-specific (lazy-initialized)
 // =============================================================================
 
 let _supabase: SupabaseClient | null = null;
@@ -31,6 +30,35 @@ function getSupabase(): SupabaseClient {
 }
 
 // =============================================================================
+// NEXUS SUPABASE CLIENT — Shared across all brands
+// =============================================================================
+
+let _nexus: SupabaseClient | null = null;
+
+function getNexus(): SupabaseClient {
+  if (!_nexus) {
+    const url =
+      import.meta.env.NEXUS_SUPABASE_URL ||
+      process.env.NEXUS_SUPABASE_URL ||
+      "";
+
+    const key =
+      import.meta.env.NEXUS_SUPABASE_ANON_KEY ||
+      process.env.NEXUS_SUPABASE_ANON_KEY ||
+      "";
+
+    if (!url || !key) {
+      throw new Error("Nexus Supabase URL and anon key are required.");
+    }
+
+    _nexus = createClient(url, key);
+  }
+  return _nexus;
+}
+
+const SITE_ID = "festivals-morocco";
+
+// =============================================================================
 // BUILD-TIME CACHE
 // =============================================================================
 declare global {
@@ -55,58 +83,7 @@ if (!globalThis.__festivalsCache) {
 const cache = globalThis.__festivalsCache!;
 
 // =============================================================================
-// NEXUS — stays on Google Sheets (shared legal pages across all sites)
-// =============================================================================
-
-const NEXUS_SHEET_ID = "1OIw-cgup17vdimqveVNOmSBSrRbykuTVM39Umm-PJtQ";
-
-function getGoogleSheetsClient() {
-  const base64Creds =
-    import.meta.env.GOOGLE_SERVICE_ACCOUNT_BASE64 ||
-    process.env.GOOGLE_SERVICE_ACCOUNT_BASE64;
-  if (!base64Creds) {
-    throw new Error("GOOGLE_SERVICE_ACCOUNT_BASE64 is not set");
-  }
-
-  const credentials = JSON.parse(
-    Buffer.from(base64Creds, "base64").toString("utf-8")
-  );
-
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-  });
-
-  return google.sheets({ version: "v4", auth });
-}
-
-export async function getNexusData(tabName: string): Promise<any[]> {
-  try {
-    const sheets = getGoogleSheetsClient();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: NEXUS_SHEET_ID,
-      range: `${tabName}!A1:ZZ`,
-    });
-
-    const rows = response.data.values || [];
-    if (rows.length === 0) return [];
-
-    const headers = rows[0];
-    return rows.slice(1).map((row) => {
-      const obj: any = {};
-      headers.forEach((header: string, index: number) => {
-        obj[header] = row[index] || "";
-      });
-      return obj;
-    });
-  } catch (error: any) {
-    console.error(`Error fetching Nexus sheet "${tabName}":`, error.message);
-    return [];
-  }
-}
-
-// =============================================================================
-// LEGAL PAGES (from Nexus Google Sheets)
+// LEGAL PAGES (from Nexus Supabase)
 // =============================================================================
 
 export interface LegalPage {
@@ -120,10 +97,19 @@ export async function getLegalPages(): Promise<LegalPage[]> {
   }
 
   try {
-    const legalPages = await getNexusData("Nexus_Legal_Pages");
+    const { data, error } = await getNexus()
+      .from("nexus_legal_pages")
+      .select("page_id, page_title")
+      .order("page_id");
+
+    if (error || !data) {
+      console.error("[Nexus] Legal pages error:", error?.message);
+      cache.legalPages = getFallbackLegalPages();
+      return cache.legalPages;
+    }
 
     const uniquePages = new Map<string, string>();
-    for (const p of legalPages) {
+    for (const p of data) {
       if (p.page_id && p.page_title && !uniquePages.has(p.page_id)) {
         uniquePages.set(p.page_id, p.page_title);
       }
@@ -162,6 +148,18 @@ function getFallbackLegalPages(): LegalPage[] {
   ];
 }
 
+interface NexusSite {
+  site_name: string;
+  site_url: string;
+  legal_entity: string;
+  contact_email: string;
+  contact_phone: string | null;
+  jurisdiction_country: string;
+  jurisdiction_city: string;
+  address_line1: string;
+  address_line2: string;
+}
+
 export interface LegalPageContent {
   page_id: string;
   page_title: string;
@@ -175,24 +173,36 @@ export async function getLegalPageContent(
   pageId: string
 ): Promise<LegalPageContent | null> {
   try {
-    const allPages = await getNexusData("Nexus_Legal_Pages");
-    const pageSections = allPages.filter((p: any) => p.page_id === pageId);
+    // Fetch sections and site config in parallel
+    const [sectionsResult, siteResult] = await Promise.all([
+      getNexus()
+        .from("nexus_legal_pages")
+        .select("*")
+        .eq("page_id", pageId)
+        .order("section_order", { ascending: true }),
+      getNexus()
+        .from("nexus_sites")
+        .select("*")
+        .eq("site_id", SITE_ID)
+        .maybeSingle(),
+    ]);
 
-    if (pageSections.length === 0) return null;
+    const sections = sectionsResult.data || [];
+    if (sections.length === 0) return null;
 
-    const sorted = pageSections.sort(
-      (a: any, b: any) => parseInt(a.section_order) - parseInt(b.section_order)
-    );
+    const site = siteResult.data as NexusSite | null;
 
+    // Build replacements from site config or use fallbacks
     const replacements: Record<string, string> = {
-      "{{site_name}}": "Festivals in Morocco",
-      "{{site_url}}": "https://festivalsinmorocco.com",
-      "{{legal_entity}}": "Dancing with Lions",
-      "{{contact_email}}": "hello@festivalsinmorocco.com",
-      "{{jurisdiction_country}}": "Morocco",
-      "{{jurisdiction_city}}": "Marrakech",
-      "{{address_line1}}": "35 Derb Fhal Zfriti Kennaria",
-      "{{address_line2}}": "Marrakech 40000 Morocco",
+      "{{site_name}}": site?.site_name || "Festivals in Morocco",
+      "{{site_url}}": site?.site_url || "https://festivalsinmorocco.com",
+      "{{legal_entity}}": site?.legal_entity || "Dancing with Lions",
+      "{{contact_email}}": site?.contact_email || "hello@festivalsinmorocco.com",
+      "{{contact_phone}}": site?.contact_phone || "",
+      "{{jurisdiction_country}}": site?.jurisdiction_country || "Morocco",
+      "{{jurisdiction_city}}": site?.jurisdiction_city || "Marrakech",
+      "{{address_line1}}": site?.address_line1 || "35 Derb Fhal Zfriti Kennaria",
+      "{{address_line2}}": site?.address_line2 || "Marrakech 40000 Morocco",
     };
 
     const replaceVariables = (text: string): string => {
@@ -205,8 +215,8 @@ export async function getLegalPageContent(
 
     return {
       page_id: pageId,
-      page_title: sorted[0].page_title,
-      sections: sorted.map((s: any) => ({
+      page_title: sections[0].page_title,
+      sections: sections.map((s: any) => ({
         section_title: replaceVariables(s.section_title || ""),
         section_content: replaceVariables(s.section_content || ""),
       })),
