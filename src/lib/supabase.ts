@@ -1,5 +1,4 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { google } from "googleapis";
 
 // =============================================================================
 // SUPABASE CLIENT (lazy-initialized)
@@ -55,58 +54,7 @@ if (!globalThis.__festivalsCache) {
 const cache = globalThis.__festivalsCache!;
 
 // =============================================================================
-// NEXUS — stays on Google Sheets (shared legal pages across all sites)
-// =============================================================================
-
-const NEXUS_SHEET_ID = "1OIw-cgup17vdimqveVNOmSBSrRbykuTVM39Umm-PJtQ";
-
-function getGoogleSheetsClient() {
-  const base64Creds =
-    import.meta.env.GOOGLE_SERVICE_ACCOUNT_BASE64 ||
-    process.env.GOOGLE_SERVICE_ACCOUNT_BASE64;
-  if (!base64Creds) {
-    throw new Error("GOOGLE_SERVICE_ACCOUNT_BASE64 is not set");
-  }
-
-  const credentials = JSON.parse(
-    Buffer.from(base64Creds, "base64").toString("utf-8")
-  );
-
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-  });
-
-  return google.sheets({ version: "v4", auth });
-}
-
-export async function getNexusData(tabName: string): Promise<any[]> {
-  try {
-    const sheets = getGoogleSheetsClient();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: NEXUS_SHEET_ID,
-      range: `${tabName}!A1:ZZ`,
-    });
-
-    const rows = response.data.values || [];
-    if (rows.length === 0) return [];
-
-    const headers = rows[0];
-    return rows.slice(1).map((row) => {
-      const obj: any = {};
-      headers.forEach((header: string, index: number) => {
-        obj[header] = row[index] || "";
-      });
-      return obj;
-    });
-  } catch (error: any) {
-    console.error(`Error fetching Nexus sheet "${tabName}":`, error.message);
-    return [];
-  }
-}
-
-// =============================================================================
-// LEGAL PAGES (from Nexus Google Sheets)
+// NEXUS LEGAL PAGES — from Supabase
 // =============================================================================
 
 export interface LegalPage {
@@ -120,15 +68,26 @@ export async function getLegalPages(): Promise<LegalPage[]> {
   }
 
   try {
-    const legalPages = await getNexusData("Nexus_Legal_Pages");
+    const { data, error } = await getSupabase()
+      .from("nexus_legal_pages")
+      .select("page_id, page_title")
+      .order("page_id");
 
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      cache.legalPages = getFallbackLegalPages();
+      return cache.legalPages;
+    }
+
+    // Deduplicate — table has multiple rows per page (one per section)
     const uniquePages = new Map<string, string>();
-    for (const p of legalPages) {
-      if (p.page_id && p.page_title && !uniquePages.has(p.page_id)) {
-        uniquePages.set(p.page_id, p.page_title);
+    for (const row of data) {
+      if (row.page_id && row.page_title && !uniquePages.has(row.page_id)) {
+        uniquePages.set(row.page_id, row.page_title);
       }
     }
 
+    // Maintain consistent ordering
     const contentLegalPageIds = [
       "privacy",
       "terms",
@@ -147,7 +106,7 @@ export async function getLegalPages(): Promise<LegalPage[]> {
     cache.legalPages = result.length > 0 ? result : getFallbackLegalPages();
     return cache.legalPages;
   } catch (error) {
-    console.error("Could not fetch legal pages from Nexus:", error);
+    console.error("Could not fetch legal pages from Supabase:", error);
     cache.legalPages = getFallbackLegalPages();
     return cache.legalPages;
   }
@@ -175,14 +134,14 @@ export async function getLegalPageContent(
   pageId: string
 ): Promise<LegalPageContent | null> {
   try {
-    const allPages = await getNexusData("Nexus_Legal_Pages");
-    const pageSections = allPages.filter((p: any) => p.page_id === pageId);
+    const { data, error } = await getSupabase()
+      .from("nexus_legal_pages")
+      .select("page_id, page_title, section_order, section_title, section_content")
+      .eq("page_id", pageId)
+      .order("section_order", { ascending: true });
 
-    if (pageSections.length === 0) return null;
-
-    const sorted = pageSections.sort(
-      (a: any, b: any) => parseInt(a.section_order) - parseInt(b.section_order)
-    );
+    if (error) throw error;
+    if (!data || data.length === 0) return null;
 
     const replacements: Record<string, string> = {
       "{{site_name}}": "Festivals in Morocco",
@@ -205,8 +164,8 @@ export async function getLegalPageContent(
 
     return {
       page_id: pageId,
-      page_title: sorted[0].page_title,
-      sections: sorted.map((s: any) => ({
+      page_title: data[0].page_title,
+      sections: data.map((s: any) => ({
         section_title: replaceVariables(s.section_title || ""),
         section_content: replaceVariables(s.section_content || ""),
       })),

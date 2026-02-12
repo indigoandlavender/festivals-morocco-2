@@ -378,6 +378,27 @@ INSERT INTO genres (name, slug, parent_id) VALUES
     ('Folk', 'folk', NULL);
 
 -- ============================================================================
+-- NEXUS: SHARED LEGAL PAGES
+-- ============================================================================
+
+CREATE TABLE nexus_legal_pages (
+    id              SERIAL PRIMARY KEY,
+    page_id         VARCHAR(100) NOT NULL,
+    page_title      VARCHAR(200) NOT NULL,
+    section_order   SMALLINT NOT NULL DEFAULT 0,
+    section_title   VARCHAR(300),
+    section_content TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_nexus_legal_pages_page_id ON nexus_legal_pages(page_id);
+CREATE INDEX idx_nexus_legal_pages_order ON nexus_legal_pages(page_id, section_order);
+
+CREATE TRIGGER nexus_legal_pages_updated_at BEFORE UPDATE ON nexus_legal_pages
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================================
 -- VIEWS
 -- ============================================================================
 
